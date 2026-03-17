@@ -1,0 +1,118 @@
+import type { DemoScene, ScreenDefinition } from '../types'
+
+export const screenDefinitions: ScreenDefinition[] = [
+  {
+    code: 'p0',
+    title: '线路态势',
+    shortTitle: 'P0',
+    slogan: '省域高铁线路总览与重点风险识别',
+    summary: '以线路地图、质量排序和车型差异展示全线态势。',
+  },
+  {
+    code: 'p1',
+    title: '感知洞察',
+    shortTitle: 'P1',
+    slogan: '围绕单条样板线进行动态感知与告警联动',
+    summary: '通过时间切片、连续采样和告警点位解释局部问题。',
+  },
+  {
+    code: 'p2',
+    title: '策略保障',
+    shortTitle: 'P2',
+    slogan: '差异化保障策略生效后的直观体验收益',
+    summary: '面向权益用户和关键业务，展示策略前后体验拉开差距。',
+  },
+]
+
+export const demoScenes: Record<'p0' | 'p1' | 'p2', DemoScene[]> = {
+  p0: [
+    {
+      id: 'scene-p0-overview',
+      screen: 'p0',
+      title: '全网线路态势总览',
+      kicker: 'STEP 01',
+      summary: '先从省域高铁网络态势切入，再逐步聚焦重点样板线。',
+      callouts: ['展示整体线路稳定、局部风险清晰可见', '地图与右侧线路排序联动', '为后续单线深钻做承接'],
+      focusRouteId: 'jingguang-hsr',
+    },
+    {
+      id: 'scene-p0-compare',
+      screen: 'p0',
+      title: '线路质量与重点风险识别',
+      kicker: 'STEP 02',
+      summary: '通过线路质量排序定位重点关注线路和问题区段。',
+      callouts: ['红线与黄线保持少量突出', '整体网络质量保持稳定', '为感知洞察页引出重点线路'],
+      focusRouteId: 'jingguang-hsr',
+    },
+    {
+      id: 'scene-p0-vehicle',
+      screen: 'p0',
+      title: '动车组与普通列车差异对比',
+      kicker: 'STEP 03',
+      summary: '补充说明车体封闭性对信号损耗和体验的影响。',
+      callouts: ['动车组存在额外信号损耗', '同区段对比更能说明问题', '自然切换到单线路深钻'],
+      focusRouteId: 'jingguang-hsr',
+    },
+  ],
+  p1: [
+    {
+      id: 'scene-p1-rootcause',
+      screen: 'p1',
+      title: '单线路告警总览',
+      kicker: 'STEP 01',
+      summary: '默认显示全部 5 个告警点，便于从局部问题切入。',
+      callouts: ['告警主导联动', '时间轴作为从属导航', '右侧指标跟随当前告警刷新'],
+      focusRouteId: 'jingguang-hsr',
+      focusIssueId: 'spacing',
+    },
+    {
+      id: 'scene-p1-issue',
+      screen: 'p1',
+      title: '聚焦重点告警切片',
+      kicker: 'STEP 02',
+      summary: '点击地图告警点或右侧问题列表后，自动切换到代表性时间切片。',
+      callouts: ['地图点位与右侧列表同步', '当前切片数据只体现局部问题', '整体线路指标仍然健康'],
+      focusRouteId: 'jingguang-hsr',
+      focusIssueId: 'coverageFault',
+    },
+    {
+      id: 'scene-p1-coverage',
+      screen: 'p1',
+      title: '连续采样与动态切片',
+      kicker: 'STEP 03',
+      summary: '通过五分钟切片增强讲解画面感，同时保持告警主线不变。',
+      callouts: ['不同车次在不同切片中出现', '只有当前告警相关切片会高亮', '地图持续展示完整告警全貌'],
+      focusRouteId: 'jingguang-hsr',
+      focusIssueId: 'fiveGAbnormal',
+    },
+  ],
+  p2: [
+    {
+      id: 'scene-p2-policy',
+      screen: 'p2',
+      title: '权益策略选择',
+      kicker: 'STEP 01',
+      summary: '先选择保障策略，再统一触发策略生效。',
+      callouts: ['策略区尽量轻量', '参数摘要带只展示当前策略', '双手机对比是第一视觉'],
+      focusScenarioId: 'global-pass',
+    },
+    {
+      id: 'scene-p2-boost',
+      screen: 'p2',
+      title: '高铁加速权益包',
+      kicker: 'STEP 02',
+      summary: '高铁重点权益用户在策略生效后明显拉开体验差距。',
+      callouts: ['双手机画面形成直观对比', '右侧指标只看 4 项核心业务', '普通用户维持中性口径'],
+      focusScenarioId: 'hsr-boost-pack',
+    },
+    {
+      id: 'scene-p2-roam',
+      screen: 'p2',
+      title: '漫入流量激发',
+      kicker: 'STEP 03',
+      summary: '策略切换后可以展示不同业务组合的价值收益。',
+      callouts: ['支持摘要与 APP 明细切换', '保障前后体验变化清晰', '适合作为策略说明收尾'],
+      focusScenarioId: 'roam-stimulus',
+    },
+  ],
+}

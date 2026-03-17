@@ -13,7 +13,6 @@ const screenLabels: Record<ScreenCode, { title: string; order: string }> = {
   p0: { title: '线路态势', order: '01' },
   p1: { title: '感知洞察', order: '02' },
   p2: { title: '策略保障', order: '03' },
-  p3: { title: '投诉回溯', order: '04' },
 }
 
 export function TopBar({ screens, currentScreen, onChangeScreen }: TopBarProps) {

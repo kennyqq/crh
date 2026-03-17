@@ -21,30 +21,30 @@ interface P1CorridorMapProps {
 function getHeatColor(metric: P1MetricKey, value: number) {
   switch (metric) {
     case 'rsrp':
-      if (value > -95) return '#25e5ff'
-      if (value > -102) return '#44df7e'
-      if (value > -108) return '#f9c74f'
+      if (value > -94) return '#25e5ff'
+      if (value > -100) return '#44df7e'
+      if (value > -105) return '#f9c74f'
       return '#ff5a5f'
     case 'sinr':
-      if (value > 15) return '#25e5ff'
-      if (value > 10) return '#44df7e'
-      if (value > 5) return '#f9c74f'
+      if (value > 17) return '#25e5ff'
+      if (value > 13) return '#44df7e'
+      if (value > 8) return '#f9c74f'
       return '#ff5a5f'
     case 'uplinkAvg':
-      if (value > 4) return '#25e5ff'
-      if (value > 2.6) return '#44df7e'
-      if (value > 1.2) return '#f9c74f'
+      if (value > 4.6) return '#25e5ff'
+      if (value > 3.8) return '#44df7e'
+      if (value > 2.8) return '#f9c74f'
       return '#ff5a5f'
     case 'downlinkAvg':
-      if (value > 42) return '#25e5ff'
-      if (value > 34) return '#44df7e'
-      if (value > 24) return '#f9c74f'
+      if (value > 46) return '#25e5ff'
+      if (value > 40) return '#44df7e'
+      if (value > 34) return '#f9c74f'
       return '#ff5a5f'
     case 'serviceComposite':
     default:
-      if (value > 90) return '#25e5ff'
-      if (value > 76) return '#44df7e'
-      if (value > 58) return '#f9c74f'
+      if (value > 94) return '#25e5ff'
+      if (value > 86) return '#44df7e'
+      if (value > 72) return '#f9c74f'
       return '#ff5a5f'
   }
 }
@@ -59,6 +59,14 @@ function getIssueStateColor(type: P1IssueType, primaryIssueType: P1IssueType, ac
   }
 
   return '#25e5ff'
+}
+
+function getRepresentativeIssue(profile: P1RouteProfile, issueType: P1IssueType) {
+  const binding = profile.issueBindings.find((item) => item.issueType === issueType)
+  const defaultSlice =
+    profile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ?? profile.timelineSlices[0]
+
+  return defaultSlice.issueOccurrences.find((item) => item.type === issueType) ?? defaultSlice.issueOccurrences[0]
 }
 
 function isValidCoordinate(point: Coordinates | undefined | null): point is Coordinates {
@@ -145,7 +153,7 @@ export function P1CorridorMap({
   const primaryIssueType = selectedSlice.primaryIssueType
   const selectedIssue =
     selectedSlice.issueOccurrences.find((item) => item.type === selectedIssueType) ??
-    selectedSlice.issueOccurrences[0]
+    getRepresentativeIssue(profile, selectedIssueType)
 
   function removeTrackedOverlays(map: any) {
     overlaysRef.current.forEach((overlay) => {
@@ -308,12 +316,12 @@ export function P1CorridorMap({
     })
 
     validIssueMarkers.forEach((marker) => {
-      const isVisible = activeIssueTypes.includes(marker.type)
       const isSelected = marker.type === selectedIssue.type
+      const isEmphasized = isSelected || activeIssueTypes.includes(marker.type)
       const issueColor = getIssueStateColor(marker.type, primaryIssueType, activeIssueTypes)
       const content = document.createElement('button')
       content.type = 'button'
-      content.className = `p1-amap-issue-pin ${isSelected ? 'p1-amap-issue-pin--active' : ''} ${isVisible ? '' : 'p1-amap-issue-pin--muted'}`.trim()
+      content.className = `p1-amap-issue-pin ${isSelected ? 'p1-amap-issue-pin--active' : ''} ${isEmphasized ? '' : 'p1-amap-issue-pin--muted'}`.trim()
       content.style.setProperty('--issue-color', issueColor)
       content.setAttribute('aria-label', marker.label)
       content.onclick = (event) => {
@@ -436,14 +444,14 @@ export function P1CorridorMap({
 
           {profile.issueMarkers.map((marker) => {
             const [x, y] = projectPoint(marker.position, bounds)
-            const isVisible = activeIssueTypes.includes(marker.type)
             const isSelected = marker.type === selectedIssue.type
+            const isEmphasized = isSelected || activeIssueTypes.includes(marker.type)
             const issueColor = getIssueStateColor(marker.type, primaryIssueType, activeIssueTypes)
 
             return (
               <g
                 key={marker.id}
-                className={`p1-map-svg__issue-group ${isSelected ? 'p1-map-svg__issue-group--active' : ''} ${isVisible ? '' : 'p1-map-svg__issue-group--muted'}`.trim()}
+                className={`p1-map-svg__issue-group ${isSelected ? 'p1-map-svg__issue-group--active' : ''} ${isEmphasized ? '' : 'p1-map-svg__issue-group--muted'}`.trim()}
                 onClick={() => onSelectIssueType(marker.type)}
               >
                 <circle className="p1-map-svg__issue-halo" cx={x} cy={y} r="13" fill={issueColor} />

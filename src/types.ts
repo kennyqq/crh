@@ -1,4 +1,4 @@
-export type ScreenCode = 'p0' | 'p1' | 'p2' | 'p3'
+export type ScreenCode = 'p0' | 'p1' | 'p2'
 
 export type Coordinates = [number, number]
 
@@ -378,6 +378,12 @@ export interface P1SliceIssueOccurrence extends P1IssueListItem {
   trainType: '高铁' | '动车' | '普速'
 }
 
+export interface P1IssueBinding {
+  issueType: P1IssueType
+  sliceIds: string[]
+  defaultSliceId: string
+}
+
 export interface P1TimelineSlice {
   id: string
   timeLabel: string
@@ -402,6 +408,61 @@ export interface P1RouteProfile {
   serviceInsight: P1InsightSection
   issueList: P1IssueListItem[]
   issueMarkers: P1IssueMarker[]
+  defaultIssueType: P1IssueType
+  issueBindings: P1IssueBinding[]
   defaultSliceId: string
   timelineSlices: P1TimelineSlice[]
+}
+
+export interface P2PolicyParameter {
+  label: string
+  value: string
+}
+
+export interface P2AppGroup {
+  category: string
+  apps: string[]
+}
+
+export interface P2PhoneViewState {
+  status: string
+  experience: string
+  quality: string
+  latency: string
+  note: string
+}
+
+export interface P2PhoneComparisonState {
+  before: {
+    vip: P2PhoneViewState
+    standard: P2PhoneViewState
+  }
+  after: {
+    vip: P2PhoneViewState
+    standard: P2PhoneViewState
+  }
+}
+
+export interface P2BusinessMetricState {
+  vip: string
+  standard: string
+}
+
+export interface P2BusinessMetricRow {
+  label: string
+  before: P2BusinessMetricState
+  after: P2BusinessMetricState
+  improvement: string
+}
+
+export interface P2PolicyCard {
+  id: string
+  name: string
+  summary: string
+  scopeLabel: string
+  parameterBadges: P2PolicyParameter[]
+  businessCategories: string[]
+  appGroups: P2AppGroup[]
+  phoneComparison: P2PhoneComparisonState
+  metricRows: P2BusinessMetricRow[]
 }

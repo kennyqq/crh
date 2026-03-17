@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { p1RouteProfile } from '../../mock/p1CorridorData'
-import type { DemoScene, P1IssueType, P1MetricKey } from '../../types'
+import type { DemoScene, P1IssueType, P1MetricKey, P1SliceIssueOccurrence } from '../../types'
 import { DataPanel } from '../shared/DataPanel'
 import { P1CorridorMap } from './P1CorridorMap'
 import { P1Timeline } from './P1Timeline'
@@ -20,47 +20,83 @@ function getScenePreset(sceneId: string): { metric: P1MetricKey; issueType: P1Is
     return { metric: 'rsrp', issueType: 'coverageFault' }
   }
 
-  return { metric: 'rsrp', issueType: 'spacing' }
+  return { metric: 'rsrp', issueType: p1RouteProfile.defaultIssueType }
+}
+
+function getRepresentativeIssueOccurrence(issueType: P1IssueType): P1SliceIssueOccurrence {
+  const binding = p1RouteProfile.issueBindings.find((item) => item.issueType === issueType)
+  const defaultSlice =
+    p1RouteProfile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ??
+    p1RouteProfile.timelineSlices[0]
+
+  return defaultSlice.issueOccurrences.find((item) => item.type === issueType) ?? defaultSlice.issueOccurrences[0]
 }
 
 export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
   const preset = getScenePreset(scene.id)
   const [selectedMetric, setSelectedMetric] = useState<P1MetricKey>(preset.metric)
+  const [selectedIssueType, setSelectedIssueType] = useState<P1IssueType>(p1RouteProfile.defaultIssueType)
   const [selectedSliceId, setSelectedSliceId] = useState<string>(p1RouteProfile.defaultSliceId)
-  const [selectedIssueType, setSelectedIssueType] = useState<P1IssueType>(preset.issueType)
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null)
 
-  const selectedSlice = useMemo(
+  const issueBinding = useMemo(
     () =>
-      p1RouteProfile.timelineSlices.find((slice) => slice.id === selectedSliceId) ??
-      p1RouteProfile.timelineSlices[0],
-    [selectedSliceId],
+      p1RouteProfile.issueBindings.find((binding) => binding.issueType === selectedIssueType) ??
+      p1RouteProfile.issueBindings[0],
+    [selectedIssueType],
   )
 
-  const issueRows = selectedSlice.issueOccurrences
+  const relatedSlices = useMemo(
+    () => p1RouteProfile.timelineSlices.filter((slice) => issueBinding.sliceIds.includes(slice.id)),
+    [issueBinding.sliceIds],
+  )
+
+  const selectedSlice = useMemo(() => {
+    const activeSlice = relatedSlices.find((slice) => slice.id === selectedSliceId)
+    return activeSlice ?? relatedSlices[0] ?? p1RouteProfile.timelineSlices[0]
+  }, [relatedSlices, selectedSliceId])
+
+  const selectedIssue = useMemo(
+    () =>
+      selectedSlice.issueOccurrences.find((item) => item.type === selectedIssueType) ??
+      getRepresentativeIssueOccurrence(selectedIssueType),
+    [selectedIssueType, selectedSlice],
+  )
+
+  const issueRows = useMemo(
+    () =>
+      p1RouteProfile.issueList.map((item) => {
+        const representative = getRepresentativeIssueOccurrence(item.type)
+        return {
+          ...item,
+          trainNo: representative.trainNo,
+          trainType: representative.trainType,
+        }
+      }),
+    [],
+  )
 
   useEffect(() => {
-    if (highlightMode) {
-      setSelectedMetric(preset.metric)
-      setSelectedSliceId(p1RouteProfile.defaultSliceId)
-      setSelectedIssueType(preset.issueType)
-      setExpandedIssueId(null)
-    }
-  }, [highlightMode, preset.issueType, preset.metric])
-
-  useEffect(() => {
-    const activeType =
-      issueRows.find((item) => item.type === selectedIssueType)?.type ?? selectedSlice.primaryIssueType
-
-    setSelectedIssueType(activeType)
+    setSelectedSliceId(issueBinding.defaultSliceId)
     setExpandedIssueId((current) => {
       if (!current) {
         return null
       }
 
-      return issueRows.some((item) => item.id === current) ? current : null
+      return current === selectedIssue.id ? current : null
     })
-  }, [issueRows, selectedIssueType, selectedSlice.primaryIssueType])
+  }, [issueBinding.defaultSliceId, selectedIssue.id])
+
+  useEffect(() => {
+    if (highlightMode) {
+      setSelectedMetric(preset.metric)
+      setSelectedIssueType(preset.issueType)
+      setExpandedIssueId(null)
+      return
+    }
+
+    setSelectedIssueType(p1RouteProfile.defaultIssueType)
+  }, [highlightMode, preset.issueType, preset.metric])
 
   return (
     <div className="screen-page">
@@ -76,6 +112,7 @@ export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
           <P1Timeline
             slices={p1RouteProfile.timelineSlices}
             selectedSliceId={selectedSlice.id}
+            relatedSliceIds={issueBinding.sliceIds}
             onSelectSlice={setSelectedSliceId}
           />
         </section>

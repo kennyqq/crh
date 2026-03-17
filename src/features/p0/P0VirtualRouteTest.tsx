@@ -10,6 +10,7 @@ import {
   provinceLegendItems,
   provinceOverviewMetrics,
   provincePlaceLabels,
+  provinceStationLabels,
   routeIssueSummaries,
   routeTrainInsights,
 } from '../../mock/p0ProvinceData'
@@ -136,6 +137,17 @@ function getMapLabelPlacement(index: number) {
     { dx: -10, dy: -12, anchor: 'right' as const, textAnchor: 'end' as const },
     { dx: 10, dy: 18, anchor: 'left' as const, textAnchor: 'start' as const },
     { dx: -10, dy: 18, anchor: 'right' as const, textAnchor: 'end' as const },
+  ]
+
+  return placements[index % placements.length]
+}
+
+function getStationLabelPlacement(index: number) {
+  const placements = [
+    { dx: 8, dy: -10, anchor: 'left' as const, textAnchor: 'start' as const },
+    { dx: -8, dy: -10, anchor: 'right' as const, textAnchor: 'end' as const },
+    { dx: 8, dy: 14, anchor: 'left' as const, textAnchor: 'start' as const },
+    { dx: -8, dy: 14, anchor: 'right' as const, textAnchor: 'end' as const },
   ]
 
   return placements[index % placements.length]
@@ -281,6 +293,25 @@ function SimpleFallbackMap({
           >
             {place.name}
           </text>
+        )
+      })}
+
+      {provinceStationLabels.map((station, index) => {
+        const [x, y] = projectToViewBox(station.position)
+        const placement = getStationLabelPlacement(index)
+
+        return (
+          <g key={station.id}>
+            <circle cx={x} cy={y} r="3.6" className="p0-map-svg__station-dot" />
+            <text
+              x={x + placement.dx}
+              y={y + placement.dy}
+              textAnchor={placement.textAnchor}
+              className={`p0-map-svg__station-label p0-map-svg__station-label--${placement.anchor}`}
+            >
+              {station.name}
+            </text>
+          </g>
         )
       })}
 
@@ -520,7 +551,37 @@ function ProvinceMapStage({
             zIndex: 26,
           })
         })
-        labelOverlays.forEach((overlay) => map.add(overlay))
+        const stationOverlays = provinceStationLabels.flatMap((station, index) => {
+          const placement = getStationLabelPlacement(index)
+          return [
+            new AMap.CircleMarker({
+              center: station.position,
+              radius: 4,
+              strokeColor: '#fef6d3',
+              strokeWeight: 1,
+              fillColor: '#8de7ff',
+              fillOpacity: 0.95,
+              zIndex: 26,
+            }),
+            new AMap.Text({
+              text: station.name,
+              position: station.position,
+              anchor: placement.anchor,
+              offset: new AMap.Pixel(placement.dx, placement.dy),
+              style: {
+                background: 'transparent',
+                border: 'none',
+                padding: '0',
+                color: 'rgba(195, 236, 255, 0.72)',
+                fontSize: '11px',
+                fontWeight: '500',
+                textShadow: '0 0 8px rgba(0, 0, 0, 0.56)',
+              },
+              zIndex: 26,
+            }),
+          ]
+        })
+        ;[...labelOverlays, ...stationOverlays].forEach((overlay) => map.add(overlay))
 
         loca.add(baseLayer)
 
@@ -530,7 +591,7 @@ function ProvinceMapStage({
           baseLayer,
           infoWindow,
           hitPolylines,
-          selectedOverlays: [...selectedOverlays, ...labelOverlays],
+          selectedOverlays: [...selectedOverlays, ...labelOverlays, ...stationOverlays],
           AMap,
         }
 

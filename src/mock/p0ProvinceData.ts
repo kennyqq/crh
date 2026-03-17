@@ -188,6 +188,31 @@ export const provincePlaceLabels: Array<{
   { id: 'xinyang', name: '信阳', position: [114.06, 32.13] },
 ]
 
+export const provinceStationLabels: Array<{
+  id: string
+  name: string
+  position: Coordinates
+}> = [
+  { id: 'anyang-east', name: '安阳东', position: [114.41, 36.12] },
+  { id: 'hebi-east', name: '鹤壁东', position: [114.29, 35.74] },
+  { id: 'xinxiang-east', name: '新乡东', position: [113.94, 35.30] },
+  { id: 'zhengzhou-east', name: '郑州东', position: [113.78, 34.75] },
+  { id: 'xuchang-east', name: '许昌东', position: [113.85, 34.02] },
+  { id: 'luohe-west', name: '漯河西', position: [114.02, 33.57] },
+  { id: 'zhumadian-west', name: '驻马店西', position: [114.01, 32.97] },
+  { id: 'xinyang-east', name: '信阳东', position: [114.08, 32.13] },
+  { id: 'kaifeng-north', name: '开封北', position: [114.35, 34.83] },
+  { id: 'lankao-south', name: '兰考南', position: [114.81, 34.76] },
+  { id: 'minquan-north', name: '民权北', position: [115.14, 34.66] },
+  { id: 'luoyang-longmen', name: '洛阳龙门', position: [112.46, 34.62] },
+  { id: 'gongyi-south', name: '巩义南', position: [112.97, 34.70] },
+  { id: 'jiaozuo', name: '焦作', position: [113.23, 35.24] },
+  { id: 'jiyuan-east', name: '济源东', position: [112.60, 35.08] },
+  { id: 'fuyang-west', name: '阜阳西', position: [115.82, 32.89] },
+  { id: 'airport-east', name: '机场东', position: [113.84, 34.53] },
+  { id: 'songchenglu', name: '宋城路', position: [114.31, 34.80] },
+]
+
 export const fleetSignalLossProfiles: FleetSignalLossProfile[] = [
   {
     typeLabel: '普通列车',

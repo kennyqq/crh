@@ -2,6 +2,7 @@ import type {
   Coordinates,
   P1BaseStation,
   P1CorridorCell,
+  P1IssueBinding,
   P1IssueMarker,
   P1IssueType,
   P1RouteProfile,
@@ -401,60 +402,60 @@ function buildMetrics(activeTypes: P1IssueType[]) {
   const severityScore = activeTypes.reduce((score, type) => {
     switch (type) {
       case 'spacing':
-        return score + 2.3
+        return score + 0.55
       case 'uplinkWeak':
-        return score + 2.1
+        return score + 0.68
       case 'coverageFault':
-        return score + 3.4
+        return score + 1.08
       case 'fiveGAbnormal':
-        return score + 2.4
+        return score + 0.74
       case 'tunnelIntermittent':
-        return score + 2.8
+        return score + 0.9
       default:
         return score
     }
   }, 0)
 
   const issueCount = activeTypes.length
-  const rsrp = -95.6 - severityScore * 2.2
-  const sinr = 15.8 - severityScore * 1.1
-  const samples = 13880 + issueCount * 120 + Math.round(severityScore * 35)
-  const poorRatio = 8.2 + severityScore * 2.6
-  const uplink = 3.86 - severityScore * 0.42
-  const downlink = 40.8 - severityScore * 1.5
-  const uplinkLowRatio = 6.5 + severityScore * 2.1
-  const downlinkLowRatio = 3.2 + severityScore * 0.9
-  const web = 21.4 - severityScore * 0.82
-  const video = 20.5 - severityScore * 0.74
-  const game = 52 + severityScore * 4.3
-  const im = 7.4 - severityScore * 0.38
+  const rsrp = -92.4 - severityScore * 2.35
+  const sinr = 18.6 - severityScore * 1.35
+  const samples = 14320 + issueCount * 28 + Math.round(severityScore * 14)
+  const poorRatio = 2.6 + severityScore * 1.8
+  const uplink = 4.86 - severityScore * 0.56
+  const downlink = 47.4 - severityScore * 2.85
+  const uplinkLowRatio = 3.4 + severityScore * 1.55
+  const downlinkLowRatio = 1.7 + severityScore * 0.82
+  const web = 23.6 - severityScore * 1.32
+  const video = 22.8 - severityScore * 1.12
+  const game = 43 + severityScore * 7.2
+  const im = 7.9 - severityScore * 0.5
 
   return {
     signalSummary: [
-      { label: 'RSRP', value: `${formatDecimal(rsrp)} dBm`, tone: toneByNumber(rsrp, [-104, -98], true) },
-      { label: 'SINR', value: `${formatDecimal(sinr)} dB`, tone: toneByNumber(sinr, [8, 13]) },
+      { label: 'RSRP', value: `${formatDecimal(rsrp)} dBm`, tone: toneByNumber(rsrp, [-103, -97], true) },
+      { label: 'SINR', value: `${formatDecimal(sinr)} dB`, tone: toneByNumber(sinr, [10, 16]) },
       { label: '总采样点', value: String(samples), tone: 'accent' as const },
-      { label: '质差占比', value: `${formatDecimal(poorRatio)}%`, tone: toneByNumber(poorRatio, [10, 16], true) },
+      { label: '质差占比', value: `${formatDecimal(poorRatio)}%`, tone: toneByNumber(poorRatio, [5.5, 9.5], true) },
     ],
     speedRows: [
-      { label: '上行平均吞吐率', value: `${formatDecimal(Math.max(uplink, 1.1), 2)} Mbps`, tone: toneByNumber(uplink, [2.4, 3.4]) },
-      { label: '下行平均吞吐率', value: `${formatDecimal(Math.max(downlink, 28), 2)} Mbps`, tone: toneByNumber(downlink, [32, 38]) },
+      { label: '上行平均吞吐率', value: `${formatDecimal(Math.max(uplink, 3.2), 2)} Mbps`, tone: toneByNumber(uplink, [3.6, 4.5]) },
+      { label: '下行平均吞吐率', value: `${formatDecimal(Math.max(downlink, 39), 2)} Mbps`, tone: toneByNumber(downlink, [41, 46]) },
       {
         label: '上行低速率采样点占比',
         value: `${formatDecimal(uplinkLowRatio, 2)}%`,
-        tone: toneByNumber(uplinkLowRatio, [9, 14], true),
+        tone: toneByNumber(uplinkLowRatio, [5.5, 9], true),
       },
       {
         label: '下行低速率采样点占比',
         value: `${formatDecimal(downlinkLowRatio, 2)}%`,
-        tone: toneByNumber(downlinkLowRatio, [4.2, 6.2], true),
+        tone: toneByNumber(downlinkLowRatio, [2.5, 4.6], true),
       },
     ],
     serviceRows: [
-      { label: '网页浏览下行吞吐率', value: `${formatDecimal(Math.max(web, 15), 2)} Mbps`, tone: toneByNumber(web, [16, 19]) },
-      { label: '短视频下行吞吐率', value: `${formatDecimal(Math.max(video, 14), 2)} Mbps`, tone: toneByNumber(video, [15, 18]) },
-      { label: '游戏 RTT', value: `${formatDecimal(game, 2)} ms`, tone: toneByNumber(game, [60, 74], true) },
-      { label: '即时通信下行吞吐量', value: `${formatDecimal(Math.max(im, 4.2), 2)} Mbps`, tone: toneByNumber(im, [5.4, 6.5]) },
+      { label: '网页浏览下行吞吐率', value: `${formatDecimal(Math.max(web, 18.5), 2)} Mbps`, tone: toneByNumber(web, [19, 22.5]) },
+      { label: '短视频下行吞吐率', value: `${formatDecimal(Math.max(video, 17.6), 2)} Mbps`, tone: toneByNumber(video, [18.5, 21.8]) },
+      { label: '游戏 RTT', value: `${formatDecimal(game, 2)} ms`, tone: toneByNumber(game, [55, 72], true) },
+      { label: '即时通信下行吞吐量', value: `${formatDecimal(Math.max(im, 6.1), 2)} Mbps`, tone: toneByNumber(im, [6.5, 7.4]) },
     ],
   }
 }
@@ -472,27 +473,27 @@ function buildTimelineSlices(): P1TimelineSlice[] {
   const activeMap: Record<number, P1IssueType[]> = {
     0: ['spacing'],
     1: ['spacing'],
-    2: ['spacing', 'uplinkWeak'],
+    2: ['spacing'],
     3: ['uplinkWeak'],
-    4: ['uplinkWeak', 'coverageFault'],
+    4: ['uplinkWeak'],
     5: ['coverageFault'],
-    6: ['coverageFault', 'fiveGAbnormal'],
+    6: ['coverageFault'],
     7: ['fiveGAbnormal'],
-    8: ['fiveGAbnormal', 'spacing'],
-    9: ['coverageFault', 'uplinkWeak', 'spacing'],
-    10: ['uplinkWeak', 'spacing'],
+    8: ['fiveGAbnormal'],
+    9: ['spacing'],
+    10: ['spacing'],
     11: ['spacing'],
-    12: ['spacing', 'tunnelIntermittent'],
+    12: ['tunnelIntermittent'],
     13: ['tunnelIntermittent'],
-    14: ['tunnelIntermittent', 'fiveGAbnormal'],
+    14: ['tunnelIntermittent'],
     15: ['fiveGAbnormal'],
-    16: ['uplinkWeak', 'fiveGAbnormal'],
+    16: ['fiveGAbnormal'],
     17: ['uplinkWeak'],
-    18: ['spacing', 'coverageFault'],
+    18: ['coverageFault'],
     19: ['coverageFault'],
-    20: ['coverageFault', 'tunnelIntermittent'],
+    20: ['tunnelIntermittent'],
     21: ['tunnelIntermittent'],
-    22: ['spacing', 'tunnelIntermittent'],
+    22: ['tunnelIntermittent'],
     23: ['spacing'],
   }
 
@@ -524,6 +525,24 @@ function buildTimelineSlices(): P1TimelineSlice[] {
 }
 
 const timelineSlices = buildTimelineSlices()
+const issueTypes: P1IssueType[] = ['spacing', 'uplinkWeak', 'coverageFault', 'fiveGAbnormal', 'tunnelIntermittent']
+
+function buildIssueBindings(slices: P1TimelineSlice[]): P1IssueBinding[] {
+  return issueTypes.map((issueType) => {
+    const relatedSlices = slices.filter((slice) => slice.activeIssueTypes.includes(issueType))
+
+    return {
+      issueType,
+      sliceIds: relatedSlices.map((slice) => slice.id),
+      defaultSliceId: relatedSlices[0]?.id ?? slices[0].id,
+    }
+  })
+}
+
+const issueBindings = buildIssueBindings(timelineSlices)
+const defaultIssueType: P1IssueType = 'spacing'
+const defaultSliceId =
+  issueBindings.find((binding) => binding.issueType === defaultIssueType)?.defaultSliceId ?? timelineSlices[0].id
 
 export const p1RouteProfile: P1RouteProfile = {
   routeId: 'jingguang-hsr',
@@ -549,16 +568,16 @@ export const p1RouteProfile: P1RouteProfile = {
     { key: 'downlinkAvg', label: '下行吞吐率' },
     { key: 'serviceComposite', label: '业务感知' },
   ],
-  signalSummary: timelineSlices[9].metrics.signalSummary,
+  signalSummary: timelineSlices.find((slice) => slice.id === defaultSliceId)?.metrics.signalSummary ?? timelineSlices[0].metrics.signalSummary,
   speedInsight: {
     title: '速率感知洞察',
     conclusion: '',
-    rows: timelineSlices[9].metrics.speedRows,
+    rows: timelineSlices.find((slice) => slice.id === defaultSliceId)?.metrics.speedRows ?? timelineSlices[0].metrics.speedRows,
   },
   serviceInsight: {
     title: '业务感知洞察',
     conclusion: '',
-    rows: timelineSlices[9].metrics.serviceRows,
+    rows: timelineSlices.find((slice) => slice.id === defaultSliceId)?.metrics.serviceRows ?? timelineSlices[0].metrics.serviceRows,
   },
   issueList: Object.values(issueCatalog),
   issueMarkers: [
@@ -568,6 +587,8 @@ export const p1RouteProfile: P1RouteProfile = {
     buildIssueMarker('abnormal-1', 'fiveGAbnormal', '5G驻留异常', 0.65, -150),
     buildIssueMarker('tunnel-1', 'tunnelIntermittent', '隧道断续', 0.82, 150),
   ],
-  defaultSliceId: timelineSlices[9].id,
+  defaultIssueType,
+  issueBindings,
+  defaultSliceId,
   timelineSlices,
 }

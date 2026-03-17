@@ -2,12 +2,14 @@ import type { P1TimelineSlice } from '../../types'
 
 interface P1TimelineProps {
   slices: P1TimelineSlice[]
+  relatedSliceIds: string[]
   selectedSliceId: string
   onSelectSlice: (sliceId: string) => void
 }
 
-export function P1Timeline({ slices, selectedSliceId, onSelectSlice }: P1TimelineProps) {
+export function P1Timeline({ slices, relatedSliceIds, selectedSliceId, onSelectSlice }: P1TimelineProps) {
   const selectedSlice = slices.find((slice) => slice.id === selectedSliceId) ?? slices[0]
+  const relatedSet = new Set(relatedSliceIds)
 
   return (
     <section className="p1-timeline">
@@ -25,21 +27,19 @@ export function P1Timeline({ slices, selectedSliceId, onSelectSlice }: P1Timelin
       <div className="p1-timeline__track">
         {slices.map((slice) => {
           const isSelected = slice.id === selectedSliceId
-          const levelClass =
-            slice.activeIssueTypes.length >= 3
-              ? 'critical'
-              : slice.activeIssueTypes.length === 2
-                ? 'warning'
-                : slice.activeIssueTypes.length === 1
-                  ? 'notice'
-                  : 'quiet'
+          const isRelated = relatedSet.has(slice.id)
+          const levelClass = isRelated ? 'related' : 'quiet'
 
           return (
             <button
               key={slice.id}
               type="button"
               className={`p1-timeline__node p1-timeline__node--${levelClass} ${isSelected ? 'p1-timeline__node--selected' : ''}`.trim()}
-              onClick={() => onSelectSlice(slice.id)}
+              onClick={() => {
+                if (isRelated) {
+                  onSelectSlice(slice.id)
+                }
+              }}
             >
               <span className="p1-timeline__dot" />
               <span className="p1-timeline__time">{slice.timeLabel}</span>

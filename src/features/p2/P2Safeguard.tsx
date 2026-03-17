@@ -1,132 +1,163 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { lineRiskSegments, safeguardScenarios } from '../../mock/demoData'
+import { p2PolicyCards } from '../../mock/p2PolicyData'
 import type { DemoScene } from '../../types'
 import { DataPanel } from '../shared/DataPanel'
-import { MetricCard } from '../shared/MetricCard'
 
 interface P2SafeguardProps {
   scene: DemoScene
   highlightMode: boolean
-  onJumpToP1: () => void
 }
 
-export function P2Safeguard({ scene, highlightMode, onJumpToP1 }: P2SafeguardProps) {
-  const [selectedScenarioId, setSelectedScenarioId] = useState(safeguardScenarios[0].id)
-  const [applied, setApplied] = useState(false)
+export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
+  const initialPolicyId = scene.focusScenarioId ?? p2PolicyCards[0].id
+  const [selectedPolicyId, setSelectedPolicyId] = useState(initialPolicyId)
+  const [isApplied, setIsApplied] = useState(false)
+  const [isAppListExpanded, setIsAppListExpanded] = useState(false)
 
   useEffect(() => {
-    if (highlightMode && scene.focusScenarioId) {
-      setSelectedScenarioId(scene.focusScenarioId)
-      setApplied(scene.focusScenarioId !== 'safeguard-douyin')
-    }
-  }, [highlightMode, scene])
+    setSelectedPolicyId(initialPolicyId)
+    setIsApplied(false)
+    setIsAppListExpanded(false)
+  }, [highlightMode, initialPolicyId, scene.id])
 
-  const selectedScenario =
-    safeguardScenarios.find((scenario) => scenario.id === selectedScenarioId) ?? safeguardScenarios[0]
-  const linkedSegment =
-    lineRiskSegments.find((segment) => segment.id === selectedScenario.linkedSegmentId) ?? lineRiskSegments[0]
+  const selectedPolicy = useMemo(
+    () => p2PolicyCards.find((item) => item.id === selectedPolicyId) ?? p2PolicyCards[0],
+    [selectedPolicyId],
+  )
+
+  const phoneState = isApplied ? selectedPolicy.phoneComparison.after : selectedPolicy.phoneComparison.before
 
   return (
-    <div className="screen-page">
-      <section className="screen-hero screen-hero--compact">
-        <p className="eyebrow">策略保障</p>
-        <h2>分层分级业务保障</h2>
-        <p className="screen-hero__summary">
-          面向重点用户和关键业务配置差异化保障策略，展示 5QI、RFSP 和调度优先级调整后的体验收益。
-        </p>
-      </section>
+    <div className="screen-page p2-layout">
+      <DataPanel title="保障策略" className="p2-strategy-panel">
+        <div className="p2-strategy-toolbar">
+          <div className="p2-policy-buttons">
+            {p2PolicyCards.map((policy) => (
+              <button
+                key={policy.id}
+                type="button"
+                className={`p2-policy-button ${policy.id === selectedPolicy.id ? 'p2-policy-button--active' : ''}`}
+                onClick={() => {
+                  setSelectedPolicyId(policy.id)
+                  setIsApplied(false)
+                  setIsAppListExpanded(false)
+                }}
+              >
+                <strong>{policy.name}</strong>
+                <span>{policy.summary}</span>
+              </button>
+            ))}
+          </div>
 
-      <DataPanel
-        title="业务场景"
-        subtitle="保障模板"
-        aside={
-          <button type="button" className="action-button action-button--accent" onClick={() => setApplied(true)}>
-            应用保障策略
+          <button
+            type="button"
+            className={`action-button action-button--accent p2-apply-button ${isApplied ? 'p2-apply-button--applied' : ''}`}
+            onClick={() => setIsApplied(true)}
+          >
+            {isApplied ? '策略已生效' : '策略生效'}
           </button>
-        }
-      >
-        <div className="scenario-grid">
-          {safeguardScenarios.map((scenario) => (
-            <button
-              key={scenario.id}
-              type="button"
-              className={`scenario-card ${scenario.id === selectedScenario.id ? 'scenario-card--active story-focus' : ''}`}
-              onClick={() => {
-                setSelectedScenarioId(scenario.id)
-                setApplied(false)
-              }}
-            >
-              <span>{scenario.persona}</span>
-              <strong>{scenario.serviceName}</strong>
-              <small>{scenario.objective}</small>
-            </button>
-          ))}
         </div>
+
+        <section className="p2-summary-strip">
+          <div className="p2-parameter-badges">
+            {selectedPolicy.parameterBadges.map((item) => (
+              <div key={`${selectedPolicy.id}-${item.label}`} className="p2-parameter-badge">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="p2-parameter-badge p2-parameter-badge--action"
+              onClick={() => setIsAppListExpanded((current) => !current)}
+            >
+              <span>策略范围</span>
+              <strong>{selectedPolicy.scopeLabel}</strong>
+              <em>{isAppListExpanded ? '收起 APP 明细' : '查看 APP 明细'}</em>
+            </button>
+          </div>
+
+          {isAppListExpanded ? (
+            <div className="p2-app-sheet">
+              {selectedPolicy.appGroups.map((group) => (
+                <article key={`${selectedPolicy.id}-${group.category}`} className="p2-app-group">
+                  <span>{group.category}</span>
+                  <p>{group.apps.join(' / ')}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </section>
       </DataPanel>
 
-      <div className="content-grid content-grid--two">
-        <DataPanel
-          title="策略参数"
-          subtitle={selectedScenario.serviceName}
-          aside={<span className={`badge ${applied ? 'badge--success' : 'badge--warning'}`}>{applied ? '策略生效' : '待生效'}</span>}
-        >
-          <div className="metric-grid">
-            <MetricCard label="5QI" value={selectedScenario.strategy.fiveQi} tone="accent" />
-            <MetricCard label="RFSP" value={selectedScenario.strategy.rfsp} tone="accent" />
-            <MetricCard label="调度优先级" value={selectedScenario.strategy.schedulerPriority} tone="warning" />
-            <MetricCard label="关联区段" value={linkedSegment.issueType} note={linkedSegment.label} />
-          </div>
-          <div className="analysis-grid">
-            <article>
-              <h4>保障目标</h4>
-              <p>{selectedScenario.objective}</p>
+      <div className="p2-dashboard">
+        <DataPanel title="保障效果对比" className="p2-phone-panel">
+          <div className="p2-phone-grid">
+            <article className="p2-phone-card p2-phone-card--vip">
+              <header className="p2-phone-card__header">
+                <div>
+                  <span>权益用户</span>
+                </div>
+                <em className="p2-phone-status p2-phone-status--vip">{phoneState.vip.status}</em>
+              </header>
+
+              <div className="p2-phone-screen">
+                <div className="p2-phone-screen__camera" />
+                <div className="p2-phone-screen__speaker" />
+                <div className="p2-phone-screen__poster p2-phone-screen__poster--vip">
+                  <span>{phoneState.vip.experience}</span>
+                  <strong>{phoneState.vip.status}</strong>
+                  <small>录屏位待替换</small>
+                </div>
+              </div>
             </article>
-            <article>
-              <h4>策略收益</h4>
-              <ul className="callout-list">
-                {selectedScenario.benefits.map((benefit) => (
-                  <li key={benefit}>{benefit}</li>
-                ))}
-              </ul>
+
+            <article className="p2-phone-card">
+              <header className="p2-phone-card__header">
+                <div>
+                  <span>普通用户</span>
+                </div>
+                <em className="p2-phone-status p2-phone-status--standard">{phoneState.standard.status}</em>
+              </header>
+
+              <div className="p2-phone-screen">
+                <div className="p2-phone-screen__camera" />
+                <div className="p2-phone-screen__speaker" />
+                <div className="p2-phone-screen__poster p2-phone-screen__poster--standard">
+                  <span>{phoneState.standard.experience}</span>
+                  <strong>{phoneState.standard.status}</strong>
+                  <small>录屏位待替换</small>
+                </div>
+              </div>
             </article>
           </div>
         </DataPanel>
 
-        <DataPanel title="效果验证" subtitle="保障前后对比">
-          <div className="before-after-list">
-            {selectedScenario.metrics.map((metric) => {
-              const beforeWidth = (Math.min(metric.before, metric.after) / Math.max(metric.before, metric.after)) * 100
-              const afterWidth = 100
+        <DataPanel title="关键业务体验差异" className="p2-metrics-panel">
+          <div className="p2-metrics-summary">
+            <strong>{selectedPolicy.name}</strong>
+          </div>
+
+          <div className="p2-metrics-table">
+            <div className="p2-metrics-table__header">
+              <span>业务指标</span>
+              <span>权益用户</span>
+              <span>普通用户</span>
+              <span>收益</span>
+            </div>
+
+            {selectedPolicy.metricRows.map((row) => {
+              const current = isApplied ? row.after : row.before
               return (
-                <div key={metric.label} className="before-after-row">
-                  <div className="before-after-row__header">
-                    <strong>{metric.label}</strong>
-                    <span>
-                      {metric.before}
-                      {metric.unit} {'->'} {applied ? metric.after : metric.before}
-                      {metric.unit}
-                    </span>
-                  </div>
-                  <div className="before-after-row__bars">
-                    <div className="bar-track">
-                      <div className="bar-fill bar-fill--before" style={{ width: `${beforeWidth}%` }} />
-                    </div>
-                    <div className="bar-track">
-                      <div className="bar-fill bar-fill--after" style={{ width: `${applied ? afterWidth : beforeWidth}%` }} />
-                    </div>
-                  </div>
+                <div key={`${selectedPolicy.id}-${row.label}`} className="p2-metrics-table__row">
+                  <strong>{row.label}</strong>
+                  <span className="p2-metrics-table__value p2-metrics-table__value--vip">{current.vip}</span>
+                  <span className="p2-metrics-table__value">{current.standard}</span>
+                  <em>{isApplied ? row.improvement : '接近'}</em>
                 </div>
               )
             })}
-          </div>
-          <div className="toolbar-row">
-            <button type="button" className="action-button" onClick={() => setApplied((value) => !value)}>
-              {applied ? '查看保障前' : '查看保障后'}
-            </button>
-            <button type="button" className="action-button" onClick={onJumpToP1}>
-              返回问题区段
-            </button>
           </div>
         </DataPanel>
       </div>
