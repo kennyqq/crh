@@ -1,0 +1,121 @@
+:root {
+  color: #eff7ff;
+  color-scheme: dark;
+  background: #050d14;
+  font-family:
+    'Alibaba PuHuiTi 3.0',
+    'PingFang SC',
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    sans-serif;
+
+  --bg-base: #050d14;
+  --bg-panel: rgba(10, 18, 28, 0.95);
+  --bg-panel-soft: rgba(255, 255, 255, 0.03);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(122, 229, 255, 0.28);
+
+  --text-primary: #eff7ff;
+  --text-secondary: rgba(224, 242, 255, 0.78);
+  --text-tertiary: rgba(224, 242, 255, 0.56);
+  --text: var(--text-primary);
+  --text-soft: var(--text-secondary);
+
+  --accent-cyan: #7ae5ff;
+  --accent-orange: #ff7848;
+  --accent-green: #66d36e;
+  --accent-yellow: #ffca58;
+  --accent-red: #ff6247;
+
+  --font-title-1: clamp(28px, 2vw, 34px);
+  --font-title-2: clamp(22px, 1.5vw, 28px);
+  --font-title-3: 18px;
+  --font-body-lg: 16px;
+  --font-body: 14px;
+  --font-caption: 12px;
+  --font-overline: 11px;
+
+  --font-data-xl: clamp(36px, 2.6vw, 48px);
+  --font-data-lg: 28px;
+  --font-data-md: 22px;
+
+  --line-title: 1.18;
+  --line-body: 1.6;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--font-title-1);
+  line-height: var(--line-title);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+h2 {
+  font-size: var(--font-title-2);
+  line-height: var(--line-title);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--font-title-3);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--font-body-lg);
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+button,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button,
+input {
+  outline: none;
+}
+
+button:focus-visible,
+input:focus-visible {
+  box-shadow: 0 0 0 2px rgba(122, 229, 255, 0.45);
+}
