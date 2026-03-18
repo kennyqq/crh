@@ -15,7 +15,7 @@ dist-ssr
 .runtime
 '
 public/hotosm_chn_railways_lines_geojson.geojson
-public/videos/
+# 注意：videos 目录已启用，包含压缩后的演示视频
 
 # Editor directories and files
 .vscode/*
