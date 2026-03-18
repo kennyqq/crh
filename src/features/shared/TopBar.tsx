@@ -38,7 +38,7 @@ export function TopBar({ screens, currentScreen, onChangeScreen }: TopBarProps) 
   }, [])
 
   return (
-    <BorderBox13 className="topbar-shell" color={['#254d77', '#4ecfff']}>
+    <BorderBox13 className="topbar-shell" color={['#1b3a54', '#3c6279']}>
       <header className="topbar topbar--compact">
         <div className="topbar__brand">
           <div className="topbar__title">

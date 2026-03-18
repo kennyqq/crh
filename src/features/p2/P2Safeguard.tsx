@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { p2PolicyCards } from '../../mock/p2PolicyData'
 import type { DemoScene } from '../../types'
@@ -7,6 +7,67 @@ import { DataPanel } from '../shared/DataPanel'
 interface P2SafeguardProps {
   scene: DemoScene
   highlightMode: boolean
+}
+
+// 极简手机框组件 - 只保留外框和全屏视频
+// 视频文件存放位置: public/videos/
+// - before.mp4: 策略生效前（两个手机都卡顿）
+// - after_vip.mp4: 策略生效后 - 权益用户流畅
+// - after_standard.mp4: 策略生效后 - 普通用户卡顿
+function PhoneFrame({ videoSrc, isVip }: { videoSrc: string; isVip: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(true)
+  
+  // 当视频源变化时，重新加载并播放
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load()
+      videoRef.current.play().catch(() => {
+        setIsPlaying(false)
+      })
+      setIsPlaying(true)
+    }
+  }, [videoSrc])
+  
+  // 点击切换播放/暂停
+  const handleClick = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+  }
+  
+  return (
+    <div 
+      className={`p2-phone-frame ${isVip ? 'p2-phone-frame--vip' : ''} ${!isPlaying ? 'p2-phone-frame--paused' : ''}`}
+      onClick={handleClick}
+    >
+      {/* 手机外框 */}
+      <div className="p2-phone-shell">
+        {/* 全屏视频播放器 - 自动播放、静音、循环 */}
+        <video
+          ref={videoRef}
+          className="p2-phone-video"
+          src={videoSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+        {/* 暂停提示图标 */}
+        {!isPlaying && (
+          <div className="p2-phone-play-overlay">
+            <div className="p2-phone-play-icon">▶</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
@@ -26,7 +87,9 @@ export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
     [selectedPolicyId],
   )
 
-  const phoneState = isApplied ? selectedPolicy.phoneComparison.after : selectedPolicy.phoneComparison.before
+  // 根据 isApplied 状态确定视频源
+  const vipVideo = isApplied ? '/videos/after_vip.mp4' : '/videos/before.mp4'
+  const standardVideo = isApplied ? '/videos/after_standard.mp4' : '/videos/before.mp4'
 
   return (
     <div className="screen-page p2-layout">
@@ -45,7 +108,6 @@ export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
                 }}
               >
                 <strong>{policy.name}</strong>
-                <span>{policy.summary}</span>
               </button>
             ))}
           </div>
@@ -55,7 +117,7 @@ export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
             className={`action-button action-button--accent p2-apply-button ${isApplied ? 'p2-apply-button--applied' : ''}`}
             onClick={() => setIsApplied(true)}
           >
-            {isApplied ? '策略已生效' : '策略生效'}
+            {isApplied ? '已生效' : '策略生效'}
           </button>
         </div>
 
@@ -67,16 +129,16 @@ export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
                 <strong>{item.value}</strong>
               </div>
             ))}
-            <button
-              type="button"
-              className="p2-parameter-badge p2-parameter-badge--action"
-              onClick={() => setIsAppListExpanded((current) => !current)}
-            >
-              <span>策略范围</span>
-              <strong>{selectedPolicy.scopeLabel}</strong>
-              <em>{isAppListExpanded ? '收起 APP 明细' : '查看 APP 明细'}</em>
-            </button>
           </div>
+
+          <button
+            type="button"
+            className="p2-parameter-badge p2-parameter-badge--action"
+            onClick={() => setIsAppListExpanded((current) => !current)}
+          >
+            <strong>{selectedPolicy.scopeLabel}</strong>
+            <em>{isAppListExpanded ? '收起 APP 明细' : '查看 APP 明细'}</em>
+          </button>
 
           {isAppListExpanded ? (
             <div className="p2-app-sheet">
@@ -94,51 +156,12 @@ export function P2Safeguard({ scene, highlightMode }: P2SafeguardProps) {
       <div className="p2-dashboard">
         <DataPanel title="保障效果对比" className="p2-phone-panel">
           <div className="p2-phone-grid">
-            <article className="p2-phone-card p2-phone-card--vip">
-              <header className="p2-phone-card__header">
-                <div>
-                  <span>权益用户</span>
-                </div>
-                <em className="p2-phone-status p2-phone-status--vip">{phoneState.vip.status}</em>
-              </header>
-
-              <div className="p2-phone-screen">
-                <div className="p2-phone-screen__camera" />
-                <div className="p2-phone-screen__speaker" />
-                <div className="p2-phone-screen__poster p2-phone-screen__poster--vip">
-                  <span>{phoneState.vip.experience}</span>
-                  <strong>{phoneState.vip.status}</strong>
-                  <small>录屏位待替换</small>
-                </div>
-              </div>
-            </article>
-
-            <article className="p2-phone-card">
-              <header className="p2-phone-card__header">
-                <div>
-                  <span>普通用户</span>
-                </div>
-                <em className="p2-phone-status p2-phone-status--standard">{phoneState.standard.status}</em>
-              </header>
-
-              <div className="p2-phone-screen">
-                <div className="p2-phone-screen__camera" />
-                <div className="p2-phone-screen__speaker" />
-                <div className="p2-phone-screen__poster p2-phone-screen__poster--standard">
-                  <span>{phoneState.standard.experience}</span>
-                  <strong>{phoneState.standard.status}</strong>
-                  <small>录屏位待替换</small>
-                </div>
-              </div>
-            </article>
+            <PhoneFrame videoSrc={vipVideo} isVip />
+            <PhoneFrame videoSrc={standardVideo} isVip={false} />
           </div>
         </DataPanel>
 
         <DataPanel title="关键业务体验差异" className="p2-metrics-panel">
-          <div className="p2-metrics-summary">
-            <strong>{selectedPolicy.name}</strong>
-          </div>
-
           <div className="p2-metrics-table">
             <div className="p2-metrics-table__header">
               <span>业务指标</span>

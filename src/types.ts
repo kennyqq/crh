@@ -426,10 +426,7 @@ export interface P2AppGroup {
 
 export interface P2PhoneViewState {
   status: string
-  experience: string
-  quality: string
-  latency: string
-  note: string
+  tone: 'neutral' | 'smooth' | 'boosted' | 'steady'
 }
 
 export interface P2PhoneComparisonState {
@@ -455,6 +452,13 @@ export interface P2BusinessMetricRow {
   improvement: string
 }
 
+export interface P2MockVideoClip {
+  id: string
+  title: string
+  subtitle: string
+  tone: 'stutter' | 'smooth' | 'boost'
+}
+
 export interface P2PolicyCard {
   id: string
   name: string
@@ -465,4 +469,5 @@ export interface P2PolicyCard {
   appGroups: P2AppGroup[]
   phoneComparison: P2PhoneComparisonState
   metricRows: P2BusinessMetricRow[]
+  mockClips: P2MockVideoClip[]
 }

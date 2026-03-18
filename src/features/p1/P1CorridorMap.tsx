@@ -1,14 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { loadAmapLoca } from '../p0/amapLocaLoader'
-import type {
-  Coordinates,
-  MapRenderMode,
-  P1IssueType,
-  P1MetricKey,
-  P1RouteProfile,
-  P1TimelineSlice,
-} from '../../types'
+import type { Coordinates, P1IssueType, P1MetricKey, P1RouteProfile, P1TimelineSlice } from '../../types'
 
 interface P1CorridorMapProps {
   profile: P1RouteProfile
@@ -18,62 +10,117 @@ interface P1CorridorMapProps {
   onSelectIssueType: (issueType: P1IssueType) => void
 }
 
-function getHeatColor(metric: P1MetricKey, value: number) {
-  switch (metric) {
-    case 'rsrp':
-      if (value > -94) return '#25e5ff'
-      if (value > -100) return '#44df7e'
-      if (value > -105) return '#f9c74f'
-      return '#ff5a5f'
-    case 'sinr':
-      if (value > 17) return '#25e5ff'
-      if (value > 13) return '#44df7e'
-      if (value > 8) return '#f9c74f'
-      return '#ff5a5f'
-    case 'uplinkAvg':
-      if (value > 4.6) return '#25e5ff'
-      if (value > 3.8) return '#44df7e'
-      if (value > 2.8) return '#f9c74f'
-      return '#ff5a5f'
-    case 'downlinkAvg':
-      if (value > 46) return '#25e5ff'
-      if (value > 40) return '#44df7e'
-      if (value > 34) return '#f9c74f'
-      return '#ff5a5f'
-    case 'serviceComposite':
-    default:
-      if (value > 94) return '#25e5ff'
-      if (value > 86) return '#44df7e'
-      if (value > 72) return '#f9c74f'
-      return '#ff5a5f'
-  }
+interface P1MapInstances {
+  map: any
+  AMap: any
 }
 
-function getIssueStateColor(type: P1IssueType, primaryIssueType: P1IssueType, activeIssueTypes: P1IssueType[]) {
-  if (type === primaryIssueType) {
-    return '#ff5a5f'
-  }
+const AMAP_KEY = import.meta.env.VITE_AMAP_KEY
+const AMAP_SECURITY_CODE = import.meta.env.VITE_AMAP_SECURITY_CODE
+const AMAP_SCRIPT_ID = 'amap-jsapi-v2-p1'
 
-  if (activeIssueTypes.includes(type)) {
-    return '#f9c74f'
-  }
+let amapOnlyPromise: Promise<any> | null = null
 
-  return '#25e5ff'
+function appendAmapScript(key: string) {
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.getElementById(AMAP_SCRIPT_ID) as HTMLScriptElement | null
+
+    if (existing) {
+      if (existing.dataset.loaded === 'true') {
+        resolve()
+        return
+      }
+
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Failed to load AMap')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = AMAP_SCRIPT_ID
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(key)}`
+    script.async = true
+    script.defer = true
+
+    script.onload = () => {
+      script.dataset.loaded = 'true'
+      resolve()
+    }
+
+    script.onerror = () => reject(new Error('Failed to load AMap'))
+    document.head.appendChild(script)
+  })
 }
 
-function getRepresentativeIssue(profile: P1RouteProfile, issueType: P1IssueType) {
-  const binding = profile.issueBindings.find((item) => item.issueType === issueType)
-  const defaultSlice =
-    profile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ?? profile.timelineSlices[0]
+function loadAmapOnly(key: string, securityJsCode?: string) {
+  if (!key) {
+    return Promise.reject(new Error('Missing AMap key'))
+  }
 
-  return defaultSlice.issueOccurrences.find((item) => item.type === issueType) ?? defaultSlice.issueOccurrences[0]
+  if (securityJsCode) {
+    window._AMapSecurityConfig = {
+      ...(window._AMapSecurityConfig ?? {}),
+      securityJsCode,
+    }
+  }
+
+  if (window.AMap) {
+    return Promise.resolve(window.AMap)
+  }
+
+  if (!amapOnlyPromise) {
+    amapOnlyPromise = appendAmapScript(key)
+      .then(() => {
+        if (!window.AMap) {
+          throw new Error('AMap unavailable after load')
+        }
+        return window.AMap
+      })
+      .catch((error) => {
+        amapOnlyPromise = null
+        throw error
+      })
+  }
+
+  return amapOnlyPromise
+}
+
+interface CorridorFrame {
+  minLat: number
+  maxLat: number
+  centerLng: number
+  lngSpan: number
 }
 
 function isValidCoordinate(point: Coordinates | undefined | null): point is Coordinates {
   return Array.isArray(point) && point.length === 2 && Number.isFinite(point[0]) && Number.isFinite(point[1])
 }
 
-function buildBounds(profile: P1RouteProfile) {
+function getHeatColor(value: number) {
+  if (value > -103) return '#46c96b'
+  if (value > -110) return '#f0c24f'
+  return '#cf4a45'
+}
+
+function getIssueStateColor(type: P1IssueType, primaryIssueType: P1IssueType, activeIssueTypes: P1IssueType[]) {
+  if (type === primaryIssueType) {
+    return '#8f2530'
+  }
+
+  if (activeIssueTypes.includes(type)) {
+    return '#d88b2a'
+  }
+
+  return '#3f84d6'
+}
+
+function getRepresentativeIssue(profile: P1RouteProfile, issueType: P1IssueType) {
+  const binding = profile.issueBindings.find((item) => item.issueType === issueType)
+  const defaultSlice = profile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ?? profile.timelineSlices[0]
+  return defaultSlice.issueOccurrences.find((item) => item.type === issueType) ?? defaultSlice.issueOccurrences[0]
+}
+
+function buildFrame(profile: P1RouteProfile): CorridorFrame {
   const points = [
     ...profile.routePoints,
     ...profile.trackSamples.map((sample) => sample.position),
@@ -81,39 +128,38 @@ function buildBounds(profile: P1RouteProfile) {
     ...profile.stations.map((station) => station.position),
   ].filter(isValidCoordinate)
 
-  if (points.length === 0) {
-    return {
-      minLng: 0,
-      maxLng: 1,
-      minLat: 0,
-      maxLat: 1,
-    }
-  }
-
-  const lngs = points.map((point) => point[0])
   const lats = points.map((point) => point[1])
+  const lngs = points.map((point) => point[0])
+  const centerLng = profile.routePoints.reduce((sum, point) => sum + point[0], 0) / profile.routePoints.length
 
   return {
-    minLng: Math.min(...lngs),
-    maxLng: Math.max(...lngs),
     minLat: Math.min(...lats),
     maxLat: Math.max(...lats),
+    centerLng,
+    lngSpan: Math.max(Math.max(...lngs) - Math.min(...lngs), 0.22),
   }
 }
 
-function projectPoint(point: Coordinates, bounds: ReturnType<typeof buildBounds>) {
-  const padding = 32
-  const width = 1000 - padding * 2
-  const height = 720 - padding * 2
-  const x = padding + ((point[0] - bounds.minLng) / (bounds.maxLng - bounds.minLng || 1)) * width
-  const y = 720 - padding - ((point[1] - bounds.minLat) / (bounds.maxLat - bounds.minLat || 1)) * height
-  return [x, y] as const
+function projectPoint(point: Coordinates, frame: CorridorFrame) {
+  const height = 780
+  const topPadding = 42
+  const bottomPadding = 52
+  const centerX = 500
+  const lateralAmplitude = 18
+  const meanderAmplitude = 10
+  const safeLatSpan = frame.maxLat - frame.minLat || 1
+  const progress = (frame.maxLat - point[1]) / safeLatSpan
+  const deviation = (point[0] - frame.centerLng) / frame.lngSpan
+  const x = centerX + deviation * lateralAmplitude + Math.sin(progress * Math.PI * 1.2) * meanderAmplitude
+  const y = topPadding + progress * (height - topPadding - bottomPadding)
+
+  return [Number(x.toFixed(2)), Number(y.toFixed(2))] as const
 }
 
 function getStationLabelOffset(index: number) {
   const presets = [
-    { x: 10, y: -14, anchor: 'left' as const },
-    { x: -10, y: -14, anchor: 'right' as const },
+    { x: 10, y: -12, anchor: 'left' as const },
+    { x: -10, y: -12, anchor: 'right' as const },
     { x: 10, y: 18, anchor: 'left' as const },
     { x: -10, y: 18, anchor: 'right' as const },
   ]
@@ -121,95 +167,153 @@ function getStationLabelOffset(index: number) {
   return presets[index % presets.length]
 }
 
-export function P1CorridorMap({
-  profile,
-  selectedSlice,
-  selectedMetric,
-  selectedIssueType,
-  onSelectIssueType,
-}: P1CorridorMapProps) {
-  const hostRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<any>(null)
-  const amapRef = useRef<any>(null)
-  const overlaysRef = useRef<any[]>([])
-  const [renderMode, setRenderMode] = useState<MapRenderMode>('fallback-svg')
+function buildIssuePinElement(label: string, issueColor: string, active: boolean, muted: boolean, onSelect: () => void) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = ['p1-amap-issue-pin', active ? 'p1-amap-issue-pin--active' : '', muted ? 'p1-amap-issue-pin--muted' : '']
+    .filter(Boolean)
+    .join(' ')
+  button.style.setProperty('--issue-color', issueColor)
+  button.setAttribute('aria-label', `查看${label}详情`)
+  button.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect()
+  })
+  return button
+}
 
-  const bounds = useMemo(() => buildBounds(profile), [profile])
-  const validRoutePoints = useMemo(() => profile.routePoints.filter(isValidCoordinate), [profile.routePoints])
-  const validTrackSamples = useMemo(
-    () => profile.trackSamples.filter((sample) => isValidCoordinate(sample.position)),
-    [profile.trackSamples],
+function renderFallbackSvg(
+  profile: P1RouteProfile,
+  selectedIssueType: P1IssueType,
+  selectedSlice: P1TimelineSlice,
+  onSelectIssueType: (issueType: P1IssueType) => void,
+) {
+  const frame = buildFrame(profile)
+  const activeIssueTypes = selectedSlice.activeIssueTypes
+  const primaryIssueType = selectedSlice.primaryIssueType
+  const selectedIssue =
+    selectedSlice.issueOccurrences.find((item) => item.type === selectedIssueType) ?? getRepresentativeIssue(profile, selectedIssueType)
+  const routePolyline = profile.routePoints.map((point) => projectPoint(point, frame).join(',')).join(' ')
+
+  return (
+    <svg className="p1-map-svg" viewBox="0 0 1000 780" aria-label="京广高速线感知洞察地图">
+      <rect className="p1-map-svg__bg" x="0" y="0" width="1000" height="780" rx="28" />
+      <g className="p1-map-svg__mesh">
+        {Array.from({ length: 7 }, (_, index) => (
+          <line key={`vertical-${index}`} x1={338 + index * 54} x2={338 + index * 54} y1="42" y2="736" />
+        ))}
+        {Array.from({ length: 7 }, (_, index) => (
+          <line key={`horizontal-${index}`} x1="244" x2="756" y1={96 + index * 88} y2={96 + index * 88} />
+        ))}
+      </g>
+
+      <polyline className="p1-map-svg__route-base" points={routePolyline} />
+
+      {profile.trackSamples.slice(0, -1).map((sample, index) => {
+        const nextSample = profile.trackSamples[index + 1]
+        const [x1, y1] = projectPoint(sample.position, frame)
+        const [x2, y2] = projectPoint(nextSample.position, frame)
+
+        return (
+          <line
+            key={`sample-segment-${sample.id}`}
+            className="p1-map-svg__route-line"
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke={getHeatColor(sample.values.rsrp)}
+          />
+        )
+      })}
+
+      {profile.trackSamples.map((sample, index) => {
+        const [x, y] = projectPoint(sample.position, frame)
+        return <circle key={sample.id} className="p1-map-svg__sample" cx={x} cy={y} r={index % 4 === 0 ? 3.2 : 2.4} fill={getHeatColor(sample.values.rsrp)} />
+      })}
+
+      {profile.stations.map((station, stationIndex) => {
+        const [x, y] = projectPoint(station.position, frame)
+        const labelOffset = getStationLabelOffset(stationIndex)
+
+        return (
+          <g key={station.id}>
+            <circle className="p1-map-svg__station" cx={x} cy={y} r="4.8" />
+            <text
+              className={`p1-map-svg__station-label p1-map-svg__station-label--${labelOffset.anchor}`}
+              x={x + labelOffset.x}
+              y={y + labelOffset.y}
+            >
+              {station.label}
+            </text>
+          </g>
+        )
+      })}
+
+      {profile.issueMarkers.map((marker) => {
+        const [x, y] = projectPoint(marker.position, frame)
+        const isSelected = marker.type === selectedIssue.type
+        const isEmphasized = isSelected || activeIssueTypes.includes(marker.type)
+        const issueColor = getIssueStateColor(marker.type, primaryIssueType, activeIssueTypes)
+
+        return (
+          <g
+            key={marker.id}
+            className={`p1-map-svg__issue-group ${isSelected ? 'p1-map-svg__issue-group--active' : ''} ${isEmphasized ? '' : 'p1-map-svg__issue-group--muted'}`.trim()}
+          >
+            <circle className="p1-map-svg__issue-halo" cx={x} cy={y} r="16" fill={issueColor} />
+            <circle className="p1-map-svg__issue" cx={x} cy={y} r={isSelected ? 8.2 : 6.8} fill={issueColor} />
+            <circle className="p1-map-svg__issue-core" cx={x} cy={y} r={isSelected ? 3.2 : 2.6} fill="#ffffff" />
+            <circle className="p1-map-svg__issue-hit" cx={x} cy={y} r="30" onClick={() => onSelectIssueType(marker.type)} aria-label={`查看${marker.label}详情`} />
+          </g>
+        )
+      })}
+    </svg>
   )
-  const validStations = useMemo(
-    () => profile.stations.filter((station) => isValidCoordinate(station.position)),
-    [profile.stations],
-  )
-  const validIssueMarkers = useMemo(
-    () => profile.issueMarkers.filter((marker) => isValidCoordinate(marker.position)),
-    [profile.issueMarkers],
-  )
+}
+
+export function P1CorridorMap({ profile, selectedMetric, selectedSlice, selectedIssueType, onSelectIssueType }: P1CorridorMapProps) {
+  const [renderMode, setRenderMode] = useState<'amap' | 'fallback-svg'>(AMAP_KEY ? 'amap' : 'fallback-svg')
+  const [mapReady, setMapReady] = useState(false)
+  const mapHostRef = useRef<HTMLDivElement | null>(null)
+  const instancesRef = useRef<P1MapInstances | null>(null)
 
   const activeIssueTypes = selectedSlice.activeIssueTypes
   const primaryIssueType = selectedSlice.primaryIssueType
   const selectedIssue =
-    selectedSlice.issueOccurrences.find((item) => item.type === selectedIssueType) ??
-    getRepresentativeIssue(profile, selectedIssueType)
-
-  function removeTrackedOverlays(map: any) {
-    overlaysRef.current.forEach((overlay) => {
-      try {
-        map?.remove?.(overlay)
-      } catch {
-        // Ignore AMap cleanup issues during screen switching.
-      }
-    })
-    overlaysRef.current = []
-  }
+    selectedSlice.issueOccurrences.find((item) => item.type === selectedIssueType) ?? getRepresentativeIssue(profile, selectedIssueType)
 
   useEffect(() => {
-    if (!hostRef.current) {
-      return
-    }
-
-    const key = import.meta.env.VITE_AMAP_KEY
-    const securityJsCode = import.meta.env.VITE_AMAP_SECURITY_CODE
-
-    if (!key) {
+    const host = mapHostRef.current
+    if (!host || !AMAP_KEY) {
       setRenderMode('fallback-svg')
       return
     }
 
     let cancelled = false
+    host.innerHTML = ''
 
-    loadAmapLoca(key, securityJsCode)
-      .then(({ AMap }) => {
-        if (cancelled || !hostRef.current || validRoutePoints.length === 0) {
+    loadAmapOnly(AMAP_KEY, AMAP_SECURITY_CODE)
+      .then((AMap) => {
+        if (cancelled || !mapHostRef.current) {
           return
         }
 
-        amapRef.current = AMap
-        hostRef.current.innerHTML = ''
-
-        mapRef.current = new AMap.Map(hostRef.current, {
-          mapStyle: 'amap://styles/dark',
-          viewMode: '3D',
-          showLabel: false,
-          zooms: [6, 18],
-          zoom: 8.7,
-          center: validRoutePoints[Math.floor(validRoutePoints.length / 2)],
+        const map = new AMap.Map(mapHostRef.current, {
+          viewMode: '2D',
+          zoom: 7.95,
+          center: profile.routePoints[Math.floor(profile.routePoints.length / 2)],
           pitch: 0,
           rotation: 0,
-          features: ['bg', 'road'],
+          mapStyle: 'amap://styles/dark',
+          resizeEnable: true,
+          showLabel: true,
         })
 
-        requestAnimationFrame(() => {
-          mapRef.current?.resize?.()
-        })
-        window.setTimeout(() => {
-          mapRef.current?.resize?.()
-        }, 120)
-
+        instancesRef.current = { map, AMap }
         setRenderMode('amap')
+        setMapReady(true)
       })
       .catch(() => {
         if (!cancelled) {
@@ -219,78 +323,95 @@ export function P1CorridorMap({
 
     return () => {
       cancelled = true
-      overlaysRef.current = []
-      if (mapRef.current) {
-        mapRef.current.destroy()
-        mapRef.current = null
+      const instances = instancesRef.current
+      if (instances) {
+        try {
+          instances.map.clearMap()
+        } catch {
+          // ignore
+        }
+        try {
+          instances.map.destroy()
+        } catch {
+          // ignore
+        }
+      }
+      instancesRef.current = null
+      setMapReady(false)
+      if (mapHostRef.current) {
+        mapHostRef.current.innerHTML = ''
       }
     }
-  }, [profile, validRoutePoints])
+  }, [profile.routePoints])
 
   useEffect(() => {
-    if (renderMode !== 'amap' || !mapRef.current || !amapRef.current || validRoutePoints.length < 2) {
+    if (renderMode !== 'amap' || !mapReady) {
       return
     }
 
-    const AMap = amapRef.current
-    const map = mapRef.current
+    const instances = instancesRef.current
+    if (!instances) {
+      return
+    }
+
+    const { map, AMap } = instances
+    try {
+      map.clearMap()
+    } catch {
+      // ignore
+    }
+
     const overlays: any[] = []
 
-    removeTrackedOverlays(map)
-
-    const focusOverlay = new AMap.Polyline({
-      path: validRoutePoints,
-      strokeColor: '#8cf4ff',
-      strokeOpacity: 0.2,
-      strokeWeight: 10,
-      strokeLineCap: 'round',
-      strokeLineJoin: 'round',
+    const routeOverlay = new AMap.Polyline({
+      path: profile.routePoints,
+      strokeColor: 'rgba(70, 201, 107, 0.14)',
+      strokeWeight: 14,
+      lineCap: 'round',
+      lineJoin: 'round',
       zIndex: 10,
     })
+    overlays.push(routeOverlay)
 
-    overlays.push(focusOverlay)
-
-    validTrackSamples.forEach((sample, index) => {
-      if (index < validTrackSamples.length - 1) {
-        const nextSample = validTrackSamples[index + 1]
-        overlays.push(
-          new AMap.Polyline({
-            path: [sample.position, nextSample.position],
-            strokeColor: getHeatColor(selectedMetric, sample.values[selectedMetric]),
-            strokeOpacity: 0.92,
-            strokeWeight: 6,
-            strokeLineCap: 'round',
-            strokeLineJoin: 'round',
-            zIndex: 20,
-          }),
-        )
-      }
-
+    profile.trackSamples.slice(0, -1).forEach((sample, index) => {
+      const nextSample = profile.trackSamples[index + 1]
       overlays.push(
-        new AMap.CircleMarker({
-          center: sample.position,
-          radius: index % 4 === 0 ? 3.7 : 2.7,
-          strokeColor: 'rgba(255,255,255,0.75)',
-          strokeWeight: 0.8,
-          fillColor: getHeatColor(selectedMetric, sample.values[selectedMetric]),
-          fillOpacity: 0.98,
-          zIndex: 26,
+        new AMap.Polyline({
+          path: [sample.position, nextSample.position],
+          strokeColor: getHeatColor(sample.values.rsrp),
+          strokeWeight: 5,
+          strokeOpacity: 0.96,
+          lineCap: 'round',
+          lineJoin: 'round',
+          zIndex: 18,
         }),
       )
     })
 
-    validStations.forEach((station) => {
-      const stationIndex = validStations.findIndex((item) => item.id === station.id)
-      const labelOffset = getStationLabelOffset(stationIndex)
+    profile.trackSamples.forEach((sample, index) => {
+      overlays.push(
+        new AMap.CircleMarker({
+          center: sample.position,
+          radius: index % 5 === 0 ? 3.8 : 3.1,
+          fillColor: getHeatColor(sample.values.rsrp),
+          fillOpacity: 0.98,
+          strokeColor: 'rgba(255,255,255,0.62)',
+          strokeWeight: 1,
+          zIndex: 22,
+        }),
+      )
+    })
 
+    profile.stations.forEach((station, stationIndex) => {
+      const labelOffset = getStationLabelOffset(stationIndex)
       overlays.push(
         new AMap.CircleMarker({
           center: station.position,
-          radius: 5,
-          strokeColor: '#ffffff',
+          radius: 4.4,
+          fillColor: '#ffe07d',
+          fillOpacity: 1,
+          strokeColor: 'rgba(255,255,255,0.92)',
           strokeWeight: 1.2,
-          fillColor: '#ffe08a',
-          fillOpacity: 0.95,
           zIndex: 30,
         }),
       )
@@ -300,181 +421,53 @@ export function P1CorridorMap({
           text: station.label,
           position: station.position,
           offset: new AMap.Pixel(labelOffset.x, labelOffset.y),
-          anchor: labelOffset.anchor,
+          anchor: labelOffset.anchor === 'left' ? 'middle-left' : 'middle-right',
           style: {
-            padding: '0',
-            border: 'none',
+            color: 'rgba(230, 245, 255, 0.8)',
+            fontSize: '13px',
+            fontWeight: '600',
             background: 'transparent',
-            color: 'rgba(231, 243, 255, 0.76)',
-            fontSize: '12px',
-            fontWeight: '500',
-            textShadow: '0 0 8px rgba(0, 0, 0, 0.55)',
+            border: 'none',
+            padding: '0',
+            textShadow: '0 0 8px rgba(0, 0, 0, 0.72)',
           },
-          zIndex: 31,
+          zIndex: 32,
         }),
       )
     })
 
-    validIssueMarkers.forEach((marker) => {
-      const isSelected = marker.type === selectedIssue.type
-      const isEmphasized = isSelected || activeIssueTypes.includes(marker.type)
+    profile.issueMarkers.forEach((marker) => {
       const issueColor = getIssueStateColor(marker.type, primaryIssueType, activeIssueTypes)
-      const content = document.createElement('button')
-      content.type = 'button'
-      content.className = `p1-amap-issue-pin ${isSelected ? 'p1-amap-issue-pin--active' : ''} ${isEmphasized ? '' : 'p1-amap-issue-pin--muted'}`.trim()
-      content.style.setProperty('--issue-color', issueColor)
-      content.setAttribute('aria-label', marker.label)
-      content.onclick = (event) => {
-        event.stopPropagation()
-        onSelectIssueType(marker.type)
-      }
+      const isSelected = marker.type === selectedIssue.type
+      const isMuted = !isSelected && !activeIssueTypes.includes(marker.type)
+      const content = buildIssuePinElement(marker.label, issueColor, isSelected, isMuted, () => onSelectIssueType(marker.type))
 
-      const markerOverlay = new AMap.Marker({
-        position: marker.position,
-        content,
-        offset: new AMap.Pixel(-15, -15),
-      })
-
-      overlays.push(markerOverlay)
+      overlays.push(
+        new AMap.Marker({
+          position: marker.position,
+          offset: new AMap.Pixel(-15, -15),
+          content,
+          zIndex: isSelected ? 60 : 52,
+        }),
+      )
     })
 
-    if (overlays.length > 0) {
-      map.add(overlays)
-    }
-
-    overlaysRef.current = overlays
-    map.setRotation?.(0)
-    map.setFitView([focusOverlay], false, [84, 30, 128, 286], 10)
-
-    requestAnimationFrame(() => {
-      map.resize?.()
-      map.setRotation?.(0)
-      map.setFitView([focusOverlay], false, [84, 30, 128, 286], 10)
-    })
-
-    return () => {
-      removeTrackedOverlays(map)
-    }
-  }, [
-    activeIssueTypes,
-    onSelectIssueType,
-    profile,
-    renderMode,
-    selectedIssue.type,
-    selectedMetric,
-    validIssueMarkers,
-    validRoutePoints,
-    validStations,
-    validTrackSamples,
-  ])
+    map.add(overlays)
+    map.setFitView([routeOverlay], false, [36, 36, 92, 276])
+    map.resize?.()
+  }, [activeIssueTypes, mapReady, onSelectIssueType, primaryIssueType, profile, renderMode, selectedIssue.type, selectedMetric])
 
   return (
     <div className="p1-map-shell">
-      <div ref={hostRef} className={`p1-map-host ${renderMode === 'fallback-svg' ? 'p1-map-host--hidden' : ''}`} />
-
-      {renderMode === 'fallback-svg' ? (
-        <svg className="p1-map-svg" viewBox="0 0 1000 720" aria-label="单线路感知洞察地图">
-          <rect className="p1-map-svg__bg" x="0" y="0" width="1000" height="720" rx="28" />
-          <g className="p1-map-svg__mesh">
-            {Array.from({ length: 11 }, (_, index) => (
-              <line key={`vertical-${index}`} x1={70 + index * 86} x2={70 + index * 86} y1="46" y2="674" />
-            ))}
-            {Array.from({ length: 7 }, (_, index) => (
-              <line key={`horizontal-${index}`} x1="62" x2="938" y1={86 + index * 86} y2={86 + index * 86} />
-            ))}
-          </g>
-
-          <polyline
-            className="p1-map-svg__route-base"
-            points={profile.routePoints.map((point) => projectPoint(point, bounds).join(',')).join(' ')}
-          />
-
-          {profile.trackSamples.map((sample, index) => {
-            if (index === profile.trackSamples.length - 1) {
-              return null
-            }
-
-            const nextSample = profile.trackSamples[index + 1]
-
-            return (
-              <line
-                key={`sample-segment-${sample.id}`}
-                className="p1-map-svg__route-line"
-                x1={projectPoint(sample.position, bounds)[0]}
-                y1={projectPoint(sample.position, bounds)[1]}
-                x2={projectPoint(nextSample.position, bounds)[0]}
-                y2={projectPoint(nextSample.position, bounds)[1]}
-                stroke={getHeatColor(selectedMetric, sample.values[selectedMetric])}
-              />
-            )
-          })}
-
-          {profile.trackSamples.map((sample, index) => {
-            const [x, y] = projectPoint(sample.position, bounds)
-
-            return (
-              <circle
-                key={sample.id}
-                className="p1-map-svg__sample"
-                cx={x}
-                cy={y}
-                r={index % 4 === 0 ? 3.8 : 2.8}
-                fill={getHeatColor(selectedMetric, sample.values[selectedMetric])}
-              />
-            )
-          })}
-
-          {profile.stations.map((station) => {
-            const [x, y] = projectPoint(station.position, bounds)
-            const labelOffset = getStationLabelOffset(profile.stations.findIndex((item) => item.id === station.id))
-
-            return (
-              <g key={station.id}>
-                <circle className="p1-map-svg__station" cx={x} cy={y} r="5" />
-                <text
-                  className={`p1-map-svg__station-label p1-map-svg__station-label--${labelOffset.anchor}`}
-                  x={x + labelOffset.x}
-                  y={y + labelOffset.y}
-                >
-                  {station.label}
-                </text>
-              </g>
-            )
-          })}
-
-          {profile.issueMarkers.map((marker) => {
-            const [x, y] = projectPoint(marker.position, bounds)
-            const isSelected = marker.type === selectedIssue.type
-            const isEmphasized = isSelected || activeIssueTypes.includes(marker.type)
-            const issueColor = getIssueStateColor(marker.type, primaryIssueType, activeIssueTypes)
-
-            return (
-              <g
-                key={marker.id}
-                className={`p1-map-svg__issue-group ${isSelected ? 'p1-map-svg__issue-group--active' : ''} ${isEmphasized ? '' : 'p1-map-svg__issue-group--muted'}`.trim()}
-                onClick={() => onSelectIssueType(marker.type)}
-              >
-                <circle className="p1-map-svg__issue-halo" cx={x} cy={y} r="13" fill={issueColor} />
-                <circle
-                  className="p1-map-svg__issue"
-                  cx={x}
-                  cy={y}
-                  r={isSelected ? 7.5 : 6}
-                  fill={issueColor}
-                />
-              </g>
-            )
-          })}
-        </svg>
-      ) : null}
+      <div ref={mapHostRef} className={`p1-map-host ${renderMode !== 'amap' ? 'p1-map-host--hidden' : ''}`} />
+      {renderMode === 'fallback-svg' ? renderFallbackSvg(profile, selectedIssueType, selectedSlice, onSelectIssueType) : null}
 
       <div className="p1-map-overlay">
         <div className="p1-map-overlay__title">
           <span>线路感知洞察</span>
-          <h2>{profile.lineName}</h2>
-          <p>
-            {selectedSlice.timeLabel} / {selectedSlice.train.trainNo}
-          </p>
+          <h2>
+            {profile.lineName} - {selectedIssue.locationLabel}
+          </h2>
         </div>
         <div className="p1-signal-summary">
           {selectedSlice.metrics.signalSummary.map((item) => (
@@ -493,14 +486,12 @@ export function P1CorridorMap({
         <strong>{selectedIssue.label}</strong>
         <div className="p1-map-focus__grid">
           <div>
-            <small>站点 / 小区</small>
+            <small>线路段 / 小区</small>
             <b>{selectedIssue.siteLabel}</b>
           </div>
           <div>
             <small>是否闭环</small>
-            <b className={selectedIssue.closed ? 'p1-map-focus__status--closed' : ''}>
-              {selectedIssue.closed ? '已闭环' : '未闭环'}
-            </b>
+            <b className={selectedIssue.closed ? 'p1-map-focus__status--closed' : ''}>{selectedIssue.closed ? '已闭环' : '未闭环'}</b>
           </div>
           <div>
             <small>关联车次</small>
@@ -518,12 +509,11 @@ export function P1CorridorMap({
 
       <div className="p1-map-legend">
         <div className="p1-map-legend__group">
-          <span className="p1-map-legend__title">热力</span>
+          <span className="p1-map-legend__title">信号电平 RSRP</span>
           {[
-            ['差', '#ff5a5f'],
-            ['次差', '#f9c74f'],
-            ['好', '#44df7e'],
-            ['优', '#25e5ff'],
+            ['差', '#cf4a45'],
+            ['良', '#f0c24f'],
+            ['优', '#46c96b'],
           ].map(([label, color]) => (
             <span key={label} className="p1-map-legend__item">
               <i style={{ background: color }} />
@@ -534,15 +524,15 @@ export function P1CorridorMap({
         <div className="p1-map-legend__group">
           <span className="p1-map-legend__title">告警点</span>
           <span className="p1-map-legend__item">
-            <i style={{ background: '#ff5a5f' }} />
+            <i style={{ background: '#8f2530' }} />
             主告警
           </span>
           <span className="p1-map-legend__item">
-            <i style={{ background: '#f9c74f' }} />
+            <i style={{ background: '#d88b2a' }} />
             当前切片告警
           </span>
           <span className="p1-map-legend__item">
-            <i style={{ background: '#25e5ff' }} />
+            <i style={{ background: '#3f84d6' }} />
             其他告警
           </span>
         </div>

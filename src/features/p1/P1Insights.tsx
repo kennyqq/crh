@@ -26,8 +26,7 @@ function getScenePreset(sceneId: string): { metric: P1MetricKey; issueType: P1Is
 function getRepresentativeIssueOccurrence(issueType: P1IssueType): P1SliceIssueOccurrence {
   const binding = p1RouteProfile.issueBindings.find((item) => item.issueType === issueType)
   const defaultSlice =
-    p1RouteProfile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ??
-    p1RouteProfile.timelineSlices[0]
+    p1RouteProfile.timelineSlices.find((slice) => slice.id === binding?.defaultSliceId) ?? p1RouteProfile.timelineSlices[0]
 
   return defaultSlice.issueOccurrences.find((item) => item.type === issueType) ?? defaultSlice.issueOccurrences[0]
 }
@@ -40,9 +39,7 @@ export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null)
 
   const issueBinding = useMemo(
-    () =>
-      p1RouteProfile.issueBindings.find((binding) => binding.issueType === selectedIssueType) ??
-      p1RouteProfile.issueBindings[0],
+    () => p1RouteProfile.issueBindings.find((binding) => binding.issueType === selectedIssueType) ?? p1RouteProfile.issueBindings[0],
     [selectedIssueType],
   )
 
@@ -78,18 +75,12 @@ export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
 
   useEffect(() => {
     setSelectedSliceId(issueBinding.defaultSliceId)
-    setExpandedIssueId((current) => {
-      if (!current) {
-        return null
-      }
-
-      return current === selectedIssue.id ? current : null
-    })
+    setExpandedIssueId((current) => (current === selectedIssue.id ? current : null))
   }, [issueBinding.defaultSliceId, selectedIssue.id])
 
   useEffect(() => {
+    setSelectedMetric(preset.metric)
     if (highlightMode) {
-      setSelectedMetric(preset.metric)
       setSelectedIssueType(preset.issueType)
       setExpandedIssueId(null)
       return
@@ -118,30 +109,26 @@ export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
         </section>
 
         <aside className="p1-sidebar">
-          <DataPanel title={p1RouteProfile.speedInsight.title} className="p1-panel-compact">
+          <DataPanel title="速率感知洞察" className="p1-panel-compact">
             <div className="p1-table-card">
               <div className="p1-kqi-table">
                 {selectedSlice.metrics.speedRows.map((item) => (
                   <div key={item.label} className="p1-kqi-table__row">
                     <span>{item.label}</span>
-                    <strong className={`p1-kqi-table__value p1-kqi-table__value--${item.tone ?? 'default'}`}>
-                      {item.value}
-                    </strong>
+                    <strong className={`p1-kqi-table__value p1-kqi-table__value--${item.tone ?? 'default'}`}>{item.value}</strong>
                   </div>
                 ))}
               </div>
             </div>
           </DataPanel>
 
-          <DataPanel title={p1RouteProfile.serviceInsight.title} className="p1-panel-compact">
+          <DataPanel title="业务感知洞察" className="p1-panel-compact">
             <div className="p1-table-card">
               <div className="p1-kqi-table">
                 {selectedSlice.metrics.serviceRows.map((item) => (
                   <div key={item.label} className="p1-kqi-table__row">
                     <span>{item.label}</span>
-                    <strong className={`p1-kqi-table__value p1-kqi-table__value--${item.tone ?? 'default'}`}>
-                      {item.value}
-                    </strong>
+                    <strong className={`p1-kqi-table__value p1-kqi-table__value--${item.tone ?? 'default'}`}>{item.value}</strong>
                   </div>
                 ))}
               </div>
@@ -153,7 +140,7 @@ export function P1Insights({ scene, highlightMode }: P1InsightsProps) {
               <div className="p1-issue-table__header">
                 <span>问题描述</span>
                 <span>数量</span>
-                <span>位置</span>
+                <span>站点</span>
                 <span>闭环</span>
                 <span>建议</span>
               </div>

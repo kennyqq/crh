@@ -153,6 +153,153 @@ function getStationLabelPlacement(index: number) {
   return placements[index % placements.length]
 }
 
+const HUB_PLACE_IDS = new Set(['zhengzhou'])
+const MAJOR_PLACE_IDS = new Set([
+  'anyang',
+  'puyang',
+  'jiaozuo',
+  'jiyuan',
+  'xinxiang',
+  'kaifeng',
+  'luozhou',
+  'shangqiu',
+  'luoyang',
+  'pingdingshan',
+  'zhoukou',
+  'nanyang',
+  'sanmenxia',
+  'xuchang',
+  'zhumadian',
+  'xinyang',
+])
+const HUB_STATION_IDS = new Set(['zhengzhou-east', 'luoyang-longmen', 'airport-east', 'zhengzhou-airport'])
+const MAJOR_STATION_IDS = new Set([
+  'anyang-east',
+  'hebi-east',
+  'xinxiang-east',
+  'zhengzhou-west',
+  'xuchang-east',
+  'changge-north',
+  'luohe-west',
+  'zhumadian-west',
+  'xinyang-east',
+  'kaifeng-north',
+  'lankao-south',
+  'shangqiu',
+  'sanmenxia-south',
+  'pingdingshan-west',
+  'nanyang-east',
+  'zhoukou-east',
+])
+
+function getPlaceTier(placeId: string) {
+  if (HUB_PLACE_IDS.has(placeId)) {
+    return 'hub'
+  }
+
+  if (MAJOR_PLACE_IDS.has(placeId)) {
+    return 'major'
+  }
+
+  return 'minor'
+}
+
+function getStationTier(stationId: string) {
+  if (HUB_STATION_IDS.has(stationId)) {
+    return 'hub'
+  }
+
+  if (MAJOR_STATION_IDS.has(stationId)) {
+    return 'major'
+  }
+
+  return 'minor'
+}
+
+function getPlaceOverlayStyle(tier: 'hub' | 'major' | 'minor') {
+  if (tier === 'hub') {
+    return {
+      color: 'rgba(238, 248, 255, 0.96)',
+      fontSize: '15px',
+      fontWeight: '700',
+      textShadow: '0 0 14px rgba(0, 0, 0, 0.7)',
+      background: 'rgba(8, 17, 27, 0.84)',
+      border: '1px solid rgba(129, 220, 255, 0.24)',
+      borderRadius: '999px',
+      padding: '4px 10px',
+    }
+  }
+
+  if (tier === 'major') {
+    return {
+      color: 'rgba(220, 240, 255, 0.82)',
+      fontSize: '12px',
+      fontWeight: '600',
+      textShadow: '0 0 10px rgba(0, 0, 0, 0.58)',
+      background: 'rgba(8, 17, 27, 0.52)',
+      border: '1px solid rgba(129, 220, 255, 0.14)',
+      borderRadius: '999px',
+      padding: '2px 8px',
+    }
+  }
+
+  return {
+    color: 'rgba(186, 220, 241, 0.58)',
+    fontSize: '11px',
+    fontWeight: '500',
+    textShadow: '0 0 8px rgba(0, 0, 0, 0.48)',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: '0',
+    padding: '0',
+  }
+}
+
+function getStationOverlayStyle(tier: 'hub' | 'major' | 'minor') {
+  if (tier === 'hub') {
+    return {
+      dotRadius: 4.7,
+      dotFill: '#c9f7ff',
+      dotStroke: '#fff8d9',
+      color: 'rgba(214, 245, 255, 0.86)',
+      fontSize: '12px',
+      fontWeight: '600',
+      background: 'rgba(8, 17, 27, 0.72)',
+      border: '1px solid rgba(120, 222, 255, 0.16)',
+      borderRadius: '10px',
+      padding: '2px 6px',
+    }
+  }
+
+  if (tier === 'major') {
+    return {
+      dotRadius: 4.1,
+      dotFill: '#94ecff',
+      dotStroke: '#fff1bf',
+      color: 'rgba(194, 233, 255, 0.72)',
+      fontSize: '11px',
+      fontWeight: '500',
+      background: 'rgba(8, 17, 27, 0.34)',
+      border: '1px solid rgba(120, 222, 255, 0.08)',
+      borderRadius: '10px',
+      padding: '1px 5px',
+    }
+  }
+
+  return {
+    dotRadius: 3.2,
+    dotFill: '#7bcde2',
+    dotStroke: '#dfefff',
+    color: 'rgba(170, 205, 228, 0.52)',
+    fontSize: '10px',
+    fontWeight: '500',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: '0',
+    padding: '0',
+  }
+}
+
 function getRiskSortOrder(level: SignalLevel) {
   if (level === 'risk') {
     return 0
@@ -282,6 +429,7 @@ function SimpleFallbackMap({
       {provincePlaceLabels.map((place, index) => {
         const [x, y] = projectToViewBox(place.position)
         const placement = getMapLabelPlacement(index)
+        const tier = getPlaceTier(place.id)
 
         return (
           <text
@@ -289,7 +437,7 @@ function SimpleFallbackMap({
             x={x + placement.dx}
             y={y + placement.dy}
             textAnchor={placement.textAnchor}
-            className={`p0-map-svg__place-label p0-map-svg__place-label--${placement.anchor}`}
+            className={`p0-map-svg__place-label p0-map-svg__place-label--${placement.anchor} p0-map-svg__place-label--${tier}`}
           >
             {place.name}
           </text>
@@ -299,15 +447,16 @@ function SimpleFallbackMap({
       {provinceStationLabels.map((station, index) => {
         const [x, y] = projectToViewBox(station.position)
         const placement = getStationLabelPlacement(index)
+        const tier = getStationTier(station.id)
 
         return (
           <g key={station.id}>
-            <circle cx={x} cy={y} r="3.6" className="p0-map-svg__station-dot" />
+            <circle cx={x} cy={y} r="3.6" className={`p0-map-svg__station-dot p0-map-svg__station-dot--${tier}`} />
             <text
               x={x + placement.dx}
               y={y + placement.dy}
               textAnchor={placement.textAnchor}
-              className={`p0-map-svg__station-label p0-map-svg__station-label--${placement.anchor}`}
+              className={`p0-map-svg__station-label p0-map-svg__station-label--${placement.anchor} p0-map-svg__station-label--${tier}`}
             >
               {station.name}
             </text>
@@ -534,32 +683,37 @@ function ProvinceMapStage({
 
         const labelOverlays = provincePlaceLabels.map((place, index) => {
           const placement = getMapLabelPlacement(index)
+          const tier = getPlaceTier(place.id)
+          const style = getPlaceOverlayStyle(tier)
           return new AMap.Text({
             text: place.name,
             position: place.position,
             anchor: placement.anchor,
             offset: new AMap.Pixel(placement.dx, placement.dy),
             style: {
-              background: 'transparent',
-              border: 'none',
-              padding: '0',
-              color: 'rgba(225, 241, 255, 0.82)',
-              fontSize: '12px',
-              fontWeight: '500',
-              textShadow: '0 0 10px rgba(0, 0, 0, 0.56)',
+              background: style.background,
+              border: style.border,
+              borderRadius: style.borderRadius,
+              padding: style.padding,
+              color: style.color,
+              fontSize: style.fontSize,
+              fontWeight: style.fontWeight,
+              textShadow: style.textShadow,
             },
             zIndex: 26,
           })
         })
         const stationOverlays = provinceStationLabels.flatMap((station, index) => {
           const placement = getStationLabelPlacement(index)
+          const tier = getStationTier(station.id)
+          const style = getStationOverlayStyle(tier)
           return [
             new AMap.CircleMarker({
               center: station.position,
-              radius: 4,
-              strokeColor: '#fef6d3',
+              radius: style.dotRadius,
+              strokeColor: style.dotStroke,
               strokeWeight: 1,
-              fillColor: '#8de7ff',
+              fillColor: style.dotFill,
               fillOpacity: 0.95,
               zIndex: 26,
             }),
@@ -569,12 +723,13 @@ function ProvinceMapStage({
               anchor: placement.anchor,
               offset: new AMap.Pixel(placement.dx, placement.dy),
               style: {
-                background: 'transparent',
-                border: 'none',
-                padding: '0',
-                color: 'rgba(195, 236, 255, 0.72)',
-                fontSize: '11px',
-                fontWeight: '500',
+                background: style.background,
+                border: style.border,
+                borderRadius: style.borderRadius,
+                padding: style.padding,
+                color: style.color,
+                fontSize: style.fontSize,
+                fontWeight: style.fontWeight,
                 textShadow: '0 0 8px rgba(0, 0, 0, 0.56)',
               },
               zIndex: 26,
@@ -597,11 +752,13 @@ function ProvinceMapStage({
 
         requestAnimationFrame(() => {
           map.resize?.()
-          map.setFitView?.(selectedOverlays, false, [70, 110, 70, 90], 9)
+          map.setCenter?.([113.62, 34.76])
+          map.setZoom?.(7.3)
         })
         window.setTimeout(() => {
           map.resize?.()
-          map.setFitView?.(selectedOverlays, false, [70, 110, 70, 90], 9)
+          map.setCenter?.([113.62, 34.76])
+          map.setZoom?.(7.3)
         }, 120)
 
         setRenderMode('amap')
@@ -644,7 +801,8 @@ function ProvinceMapStage({
     instances.selectedOverlays.forEach((overlay) => instances.map?.add?.(overlay))
     requestAnimationFrame(() => {
       instances.map?.resize?.()
-      instances.map?.setFitView?.(instances.selectedOverlays, false, [70, 110, 70, 90], 9)
+      instances.map?.setCenter?.([113.62, 34.76])
+      instances.map?.setZoom?.(7.3)
     })
   }, [renderMode, selectedFeature, selectedRouteId])
 

@@ -23,8 +23,8 @@ export function DataPanel({
   return (
     <BorderBox12
       className={`dv-panel-frame ${className}`.trim()}
-      color={['#163655', '#4ecfff']}
-      backgroundColor="rgba(8, 16, 26, 0.92)"
+      color={['#13293d', '#2e546c']}
+      backgroundColor="rgba(8, 15, 24, 0.94)"
     >
       <section className="dv-panel">
         {heading || aside ? (

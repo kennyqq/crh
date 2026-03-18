@@ -1,10 +1,31 @@
 import type { P2PolicyCard } from '../types'
 
+const sharedMockClips = [
+  {
+    id: 'douyin-stutter',
+    title: '抖音卡顿',
+    subtitle: '未加速 / 画面加载断续',
+    tone: 'stutter' as const,
+  },
+  {
+    id: 'douyin-smooth',
+    title: '抖音流畅',
+    subtitle: '正常播放 / 滑动顺畅',
+    tone: 'smooth' as const,
+  },
+  {
+    id: 'douyin-boost',
+    title: '加速生效',
+    subtitle: '卡顿转流畅 / 可替换真实录屏',
+    tone: 'boost' as const,
+  },
+]
+
 export const p2PolicyCards: P2PolicyCard[] = [
   {
     id: 'global-pass',
     name: '全球通钻白卡',
-    summary: '面向高价值用户，对时延敏感和码率敏感业务进行实时保障。',
+    summary: '面向高价值用户，对关键业务进行差异化优先调度。',
     scopeLabel: '18个APP',
     parameterBadges: [
       { label: '5QI', value: '6' },
@@ -17,40 +38,16 @@ export const p2PolicyCards: P2PolicyCard[] = [
       { category: '长视频', apps: ['爱奇艺', '腾讯视频', '优酷', '哔哩哔哩'] },
       { category: '网页', apps: ['今日头条', '腾讯新闻', '百度', '微博'] },
       { category: '文件传输', apps: ['百度网盘', '移动云盘', '企业网盘'] },
-      { category: '游戏', apps: ['王者荣耀', '和平精英', 'QQ 游戏'] },
+      { category: '游戏', apps: ['王者荣耀', '和平精英', 'QQ游戏'] },
     ],
     phoneComparison: {
       before: {
-        vip: {
-          status: '同等体验',
-          experience: '普通播放',
-          quality: '720P',
-          latency: '0.7s',
-          note: '保障未生效前，两类用户体验基本一致。',
-        },
-        standard: {
-          status: '同等体验',
-          experience: '普通播放',
-          quality: '720P',
-          latency: '0.7s',
-          note: '当前链路稳定，权益差异尚未拉开。',
-        },
+        vip: { status: '同等体验', tone: 'neutral' },
+        standard: { status: '同等体验', tone: 'neutral' },
       },
       after: {
-        vip: {
-          status: '流畅',
-          experience: '高优先调度',
-          quality: '1080P',
-          latency: '0.2s',
-          note: '权益用户在高铁瞬时冲击场景下保持更稳定码率。',
-        },
-        standard: {
-          status: '一般',
-          experience: '普通调度',
-          quality: '720P',
-          latency: '0.8s',
-          note: '普通用户整体稳定，局部冲击时出现轻微缓冲。',
-        },
+        vip: { status: '流畅', tone: 'boosted' },
+        standard: { status: '一般', tone: 'steady' },
       },
     },
     metricRows: [
@@ -85,11 +82,12 @@ export const p2PolicyCards: P2PolicyCard[] = [
         improvement: '+61.1%',
       },
     ],
+    mockClips: sharedMockClips,
   },
   {
     id: 'hsr-boost-pack',
     name: '高铁加速权益包',
-    summary: '叠加 RFSP 权益和最小保障速率，适合高铁重点乘客加速体验展示。',
+    summary: '叠加 RFSP 与最小保障速率，在高铁冲击场景下优先保障权益用户。',
     scopeLabel: '18个APP',
     parameterBadges: [
       { label: '5QI', value: '6' },
@@ -104,40 +102,16 @@ export const p2PolicyCards: P2PolicyCard[] = [
       { category: '长视频', apps: ['爱奇艺', '腾讯视频', '优酷', '哔哩哔哩'] },
       { category: '网页', apps: ['今日头条', '腾讯新闻', '百度', 'UC浏览器'] },
       { category: '文件传输', apps: ['百度网盘', '移动云盘', '企业邮箱'] },
-      { category: '游戏', apps: ['王者荣耀', '和平精英', 'QQ 游戏'] },
+      { category: '游戏', apps: ['王者荣耀', '和平精英', 'QQ游戏'] },
     ],
     phoneComparison: {
       before: {
-        vip: {
-          status: '同等体验',
-          experience: '普通播放',
-          quality: '720P',
-          latency: '0.6s',
-          note: '策略启用前，权益用户与普通用户表现接近。',
-        },
-        standard: {
-          status: '同等体验',
-          experience: '普通播放',
-          quality: '720P',
-          latency: '0.6s',
-          note: '高铁高速移动场景下仍可保持基本可用。',
-        },
+        vip: { status: '同等体验', tone: 'neutral' },
+        standard: { status: '同等体验', tone: 'neutral' },
       },
       after: {
-        vip: {
-          status: '流畅',
-          experience: '高铁加速',
-          quality: '1080P',
-          latency: '0.2s',
-          note: '权益用户在瞬时拥塞时优先分配资源，画面更稳。',
-        },
-        standard: {
-          status: '轻微卡顿',
-          experience: '普通调度',
-          quality: '720P',
-          latency: '0.7s',
-          note: '普通用户整体可用，但在切片冲击时会出现轻微缓冲。',
-        },
+        vip: { status: '流畅', tone: 'boosted' },
+        standard: { status: '轻微卡顿', tone: 'steady' },
       },
     },
     metricRows: [
@@ -172,17 +146,18 @@ export const p2PolicyCards: P2PolicyCard[] = [
         improvement: '+61.9%',
       },
     ],
+    mockClips: sharedMockClips,
   },
   {
     id: 'roam-stimulus',
     name: '漫入流量激发',
-    summary: '面向业务拉新和流量激发，优先保障高感知价值业务的体验稳定性。',
-    scopeLabel: '5类业务',
+    summary: '通过优先保障高感知业务，带动权益用户时长与流量使用提升。',
+    scopeLabel: '18个APP',
     parameterBadges: [
       { label: '5QI', value: '6' },
       { label: '调度权重', value: '1000' },
       { label: '业务范围', value: '5类' },
-      { label: '策略目标', value: '漫入激发' },
+      { label: '策略目标', value: '流量激发' },
     ],
     businessCategories: ['短视频', '网页', '长视频', '文件传输', '游戏'],
     appGroups: [
@@ -194,36 +169,12 @@ export const p2PolicyCards: P2PolicyCard[] = [
     ],
     phoneComparison: {
       before: {
-        vip: {
-          status: '同等体验',
-          experience: '标准体验',
-          quality: '720P',
-          latency: '0.7s',
-          note: '保障前体验接近，暂未体现权益优势。',
-        },
-        standard: {
-          status: '同等体验',
-          experience: '标准体验',
-          quality: '720P',
-          latency: '0.7s',
-          note: '整段线路整体表现良好，仅局部切片有冲击。',
-        },
+        vip: { status: '同等体验', tone: 'neutral' },
+        standard: { status: '同等体验', tone: 'neutral' },
       },
       after: {
-        vip: {
-          status: '流畅',
-          experience: '优先保障',
-          quality: '1080P',
-          latency: '0.3s',
-          note: '高感知业务先受益，权益用户主观体验拉开差距。',
-        },
-        standard: {
-          status: '一般',
-          experience: '标准体验',
-          quality: '720P',
-          latency: '0.8s',
-          note: '普通用户维持正常可用，不做负向呈现。',
-        },
+        vip: { status: '流畅', tone: 'smooth' },
+        standard: { status: '一般', tone: 'steady' },
       },
     },
     metricRows: [
@@ -258,6 +209,7 @@ export const p2PolicyCards: P2PolicyCard[] = [
         improvement: '+56.3%',
       },
     ],
+    mockClips: sharedMockClips,
   },
 ]
 
